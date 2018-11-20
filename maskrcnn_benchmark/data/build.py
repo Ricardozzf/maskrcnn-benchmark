@@ -36,6 +36,8 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
         # during training
         if data["factory"] == "COCODataset":
             args["remove_images_without_annotations"] = is_train
+        elif data["factory"] == "SensingDataset":
+            args["remove_annotations_without_images"] = is_train
         args["transforms"] = transforms
         # make dataset from factory
         dataset = factory(**args)

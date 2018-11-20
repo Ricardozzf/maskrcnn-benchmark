@@ -21,6 +21,18 @@ class DatasetCatalog(object):
             "coco/val2014",
             "coco/annotations/instances_valminusminival2014.json",
         ),
+        "Sensing2018_train":(
+            "Sensing/train2018/images",
+            "Sensing/train2018/train2018.txt",
+        ),
+        "Sensing2018_val":(
+            "Sensing/val2018/images",
+            "Sensing/val2018/val2018.txt",
+        ),
+        "Sensing2018_test":(
+            "Sensing/test2018/images",
+            "Sensing/test2018/test2018.txt",
+        ),
     }
 
     @staticmethod
@@ -34,6 +46,17 @@ class DatasetCatalog(object):
             )
             return dict(
                 factory="COCODataset",
+                args=args,
+            )
+        elif "Sensing" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                root=os.path.join(data_dir, attrs[0]),
+                ann_file=os.path.join(data_dir, attrs[1]),
+            )
+            return dict(
+                factory="SensingDataset",
                 args=args,
             )
         raise RuntimeError("Dataset not available: {}".format(name))

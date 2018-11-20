@@ -25,6 +25,14 @@ from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
+def _transfer_pretrained_weights(model, pretrained_model_pth):
+    pretrained_weights = torch.load(pretrained_model_pth)['model']
+    new_dict = {k.replace('module.',''):v for k, v in pretrained_weights.items()
+                if 'cls_score' not in k and 'bbox_pred' not in k}
+    this_state = model.state_dict()
+    this_state.update(new_dict)
+    model.load_state_dict(this_state)
+    return model
 
 def train(cfg, local_rank, distributed):
     model = build_detection_model(cfg)
