@@ -33,10 +33,10 @@ class SensingDataset(object):
             for line in fp.readlines():
                 cnt = line.rstrip().split(' ')
                 labels.append(int(cnt[0])+1)
-                x1 = int(float(cnt[1]) - float(cnt[3]) / 2)
-                y1 = int(float(cnt[2]) - float(cnt[4]) / 2)
-                x2 = int(float(cnt[1]) + float(cnt[3]) / 2)
-                y2 = int(float(cnt[2]) + float(cnt[4]) / 2)
+                x1 = float(cnt[1])
+                y1 = float(cnt[2])
+                x2 = float(cnt[3])
+                y2 = float(cnt[4])
                 boxes.append([x1,y1,x2,y2])
         
         # and labels

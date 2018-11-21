@@ -18,9 +18,8 @@ from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from maskrcnn_benchmark.structures.repulsionloss_op import IoG
 from maskrcnn_benchmark.structures.repulsionloss_op import smooth_ln
 from maskrcnn_benchmark.structures.repulsionloss_op import calc_iou
-import pdb
 
-class RPNLossComputation(object):
+class TESTRPNLossComputation(object):
     """
     This class computes the RPN loss.
     """
@@ -161,7 +160,7 @@ def make_rpn_loss_evaluator(cfg, box_coder):
 #*****************************************************************#
 import numpy as np
 import random
-class RPNRepLossComputation(object):
+class RPNLossComputation(object):
     """
     This class computes the Repulsion loss.
     """
@@ -199,7 +198,7 @@ class RPNRepLossComputation(object):
             matched_targets = self.match_targets_to_anchors(
                 anchors_per_image, targets_per_image
             )
-
+            
             matched_idxs = matched_targets.get_field("matched_idxs")
             labels_per_image = matched_idxs >= 0
             labels_per_image = labels_per_image.to(dtype=torch.float32)
@@ -217,7 +216,7 @@ class RPNRepLossComputation(object):
 
             labels.append(labels_per_image)
             regression_targets.append(regression_targets_per_image)
-
+        
         return labels, regression_targets
 
     def __call__(self, anchors, objectness, box_regression, targets):
@@ -239,7 +238,7 @@ class RPNRepLossComputation(object):
         sampled_neg_inds = torch.nonzero(torch.cat(sampled_neg_inds, dim=0)).squeeze(1)
 
         sampled_inds = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
-
+        
         objectness_flattened = []
         box_regression_flattened = []
         # for each feature level, permute the outputs to make them be in the
@@ -278,13 +277,14 @@ class RPNRepLossComputation(object):
         anchor_flattened = [] 
         for anchor_per in anchors:
             anchor_flattened.append(anchor_per.bbox)
-        assert len(anchor_flattened) <2,"Multi level anchor!"
-        anchors_bbox = cat(anchor_flattened, dim=1).reshape(-1,4)
+        #assert len(anchor_flattened) <2,"Multi level anchor!"
+        anchors_bbox = cat(anchor_flattened, dim=0).reshape(-1,4)
 
         targets_bbox_flattened = []
         for targets_bbox_per in targets:
             targets_bbox_flattened.append(targets_bbox_per.bbox)
-        targets_box = cat(targets_bbox_flattened, dim=1).reshape(-1,4)
+        #import pdb; pdb.set_trace()
+        targets_box = cat(targets_bbox_flattened, dim=0).reshape(-1,4)
 
         box_regression_dx = box_regression[:,0]
         box_regression_dy = box_regression[:,1]
@@ -346,6 +346,5 @@ class RPNRepLossComputation(object):
         reg_loss = box_loss + 0.5 * RepGT_loss + 0.5 * RepBox_loss
         objectness_loss = F.binary_cross_entropy_with_logits(
             objectness[sampled_inds], labels[sampled_inds]
-        )
-        pdb.set_trace()
+        )        
         return objectness_loss, reg_loss
