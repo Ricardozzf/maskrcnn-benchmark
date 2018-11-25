@@ -260,6 +260,12 @@ class RPNLossComputation(object):
         # concatenate on the first dimension (representing the feature levels), to
         # take into account the way the labels were generated (with all feature maps
         # being concatenated as well)
+
+        # keep bbox_regression
+        box_regression_reploss = cat(box_regression_flattened, dim=1)
+        batches = box_regression_reploss.shape[0]
+        num_anchors = box_regression_reploss.shape[1]
+
         objectness = cat(objectness_flattened, dim=1).reshape(-1)
         box_regression = cat(box_regression_flattened, dim=1).reshape(-1, 4)
 
@@ -273,78 +279,103 @@ class RPNLossComputation(object):
             size_average=False,
         ) / (sampled_inds.numel())
 
+        objectness_loss = F.binary_cross_entropy_with_logits(
+            objectness[sampled_inds], labels[sampled_inds]
+        )     
+
+
         ######################################################
         anchor_flattened = [] 
         for anchor_per in anchors:
             anchor_flattened.append(anchor_per.bbox)
         #assert len(anchor_flattened) <2,"Multi level anchor!"
-        anchors_bbox = cat(anchor_flattened, dim=0).reshape(-1,4)
+        #anchors_bbox = cat(anchor_flattened, dim=0).reshape(-1,4)
+        anchors_bbox = anchor_flattened
 
         targets_bbox_flattened = []
         for targets_bbox_per in targets:
             targets_bbox_flattened.append(targets_bbox_per.bbox)
         #import pdb; pdb.set_trace()
-        targets_box = cat(targets_bbox_flattened, dim=0).reshape(-1,4)
+        #targets_box = cat(targets_bbox_flattened, dim=0).reshape(-1,4)
+        targets_box = targets_bbox_flattened
 
-        box_regression_dx = box_regression[:,0]
-        box_regression_dy = box_regression[:,1]
-        box_regression_dw = box_regression[:,2]
-        box_regression_dh = box_regression[:,3]
-        assert box_regression.shape[0] == anchors_bbox.shape[0],"Invalid shape with bbox_regression && anchors!"
+        RepGT_losses = 0
+        RepBox_losses = 0
+        for batch in range(batches):
+            box_regression_dx = box_regression_reploss[batch,:,0]
+            box_regression_dy = box_regression_reploss[batch,:,1]
+            box_regression_dw = box_regression_reploss[batch,:,2]
+            box_regression_dh = box_regression_reploss[batch,:,3]
+            #assert box_regression.shape[0] == anchors_bbox.shape[0],"Invalid shape with bbox_regression && anchors!"
+            
+            targets_box_batch = targets_box[batch]
+            anchors_bbox_batch = anchors_bbox[batch]
+
+            inds_ge = sampled_pos_inds.ge(batch*num_anchors)
+            inds_le = sampled_pos_inds.le(batch*num_anchors + num_anchors-1)
+            inds_bet = inds_ge * inds_le
+            sampled_pos_inds_batch = sampled_pos_inds[inds_bet] % num_anchors
+
+            if len(sampled_pos_inds_batch) != 0:
+
+                anchors_bbox_cx = (anchors_bbox_batch[:, 0] + anchors_bbox_batch[:, 2]) / 2.0
+                anchors_bbox_cy = (anchors_bbox_batch[:, 1] + anchors_bbox_batch[:, 3]) / 2.0
+                anchors_bbox_w = anchors_bbox_batch[:, 2] - anchors_bbox_batch[:, 0] + 1
+                anchors_bbox_h = anchors_bbox_batch[:, 3] - anchors_bbox_batch[:, 1] + 1
+                predict_w = torch.exp(box_regression_dw) * anchors_bbox_w
+                predict_h = torch.exp(box_regression_dh) * anchors_bbox_h
+                predict_x = box_regression_dx * anchors_bbox_w + anchors_bbox_cx
+                predict_y = box_regression_dy * anchors_bbox_h + anchors_bbox_cy
+
+                predict_x1 = predict_x - 0.5 * predict_w
+                predict_y1 = predict_y - 0.5 * predict_h
+                predict_x2 = predict_x + 0.5 * predict_w
+                predict_y2 = predict_y + 0.5 * predict_h
+
+                predict_boxes = torch.stack((predict_x1, predict_y1, predict_x2, predict_y2)).t()
+                predict_boxes_pos = predict_boxes[sampled_pos_inds_batch,:]
+                IoU = calc_iou(anchors_bbox_batch, targets_box_batch[:, :4])  # num_anchors x num_annotations
+                IoU_max, IoU_argmax = torch.max(IoU, dim=1)  # num_anchors x 1
+
+                #add RepGT losses
+                IoU_pos = IoU[sampled_pos_inds_batch,:]
+                IoU_max_keep, IoU_argmax_keep = torch.max(IoU_pos, dim=1, keepdim=True)  # num_anchors x 1
+                for idx in range(IoU_argmax_keep.shape[0]):
+                    IoU_pos[idx, IoU_argmax_keep[idx]] = -1
+                IoU_sec, IoU_argsec = torch.max(IoU_pos, dim=1)
+                assigned_annotations_sec = targets_box_batch[IoU_argsec, :]
+
+                IoG_to_minimize = IoG(assigned_annotations_sec, predict_boxes_pos)
+                RepGT_loss = smooth_ln(IoG_to_minimize, 0.5)
+                RepGT_loss = RepGT_loss.mean() / sampled_pos_inds.numel()
+                RepGT_losses += RepGT_loss
+
+                #add RepBox losses
+                IoU_argmax_pos = IoU_argmax[sampled_pos_inds_batch].float()
+                IoU_argmax_pos = IoU_argmax_pos.unsqueeze(0).t()
+                predict_boxes_pos = torch.cat([predict_boxes_pos,IoU_argmax_pos],dim=1)
+
+                predict_boxes_pos_np = predict_boxes_pos.detach().cpu().numpy()
+                num_gt = targets_box_batch.shape[0]
+                predict_boxes_pos_sampled = []
+                for id in range(num_gt):
+                    index = np.where(predict_boxes_pos_np[:, 4]==id)[0]
+                    if index.shape[0]:
+                        idx = random.choice(range(index.shape[0]))
+                        predict_boxes_pos_sampled.append(predict_boxes_pos[index[idx], :4])
+                predict_boxes_pos_sampled = torch.stack(predict_boxes_pos_sampled)
+                iou_repbox = calc_iou(predict_boxes_pos_sampled, predict_boxes_pos_sampled)
+                mask = torch.lt(iou_repbox, 1.).float()
+                iou_repbox = iou_repbox * mask
+                RepBox_loss = smooth_ln(iou_repbox, 0.5)
+                RepBox_loss = RepBox_loss.sum() / torch.clamp(torch.sum(torch.gt(iou_repbox, 0)).float(), min=1.0) / sampled_pos_inds.numel()
+                RepBox_losses += RepBox_loss
+
+        RepGT_losses /= batches
+        RepBox_losses /= batches
+        if RepBox_losses!=RepBox_losses or RepGT_losses!=RepGT_losses or box_loss!=box_loss:
+            import pdb; pdb.set_trace()
         
-        anchors_bbox_cx = (anchors_bbox[:, 0] + anchors_bbox[:, 2]) / 2.0
-        anchors_bbox_cy = (anchors_bbox[:, 1] + anchors_bbox[:, 3]) / 2.0
-        anchors_bbox_w = anchors_bbox[:, 2] - anchors_bbox[:, 0] + 1
-        anchors_bbox_h = anchors_bbox[:, 3] - anchors_bbox[:, 1] + 1
-        predict_w = torch.exp(box_regression_dw) * anchors_bbox_w
-        predict_h = torch.exp(box_regression_dh) * anchors_bbox_h
-        predict_x = box_regression_dx * anchors_bbox_w + anchors_bbox_cx
-        predict_y = box_regression_dy * anchors_bbox_h + anchors_bbox_cy
-
-        predict_x1 = predict_x - 0.5 * predict_w
-        predict_y1 = predict_y - 0.5 * predict_h
-        predict_x2 = predict_x + 0.5 * predict_w
-        predict_y2 = predict_y + 0.5 * predict_h
-
-        predict_boxes = torch.stack((predict_x1, predict_y1, predict_x2, predict_y2)).t()
-        predict_boxes_pos = predict_boxes[sampled_pos_inds,:]
-        IoU = calc_iou(anchors_bbox, targets_box[:, :4])  # num_anchors x num_annotations
-        IoU_max, IoU_argmax = torch.max(IoU, dim=1)  # num_anchors x 1
-
-        #add RepGT losses
-        IoU_pos = IoU[sampled_pos_inds,:]
-        IoU_max_keep, IoU_argmax_keep = torch.max(IoU_pos, dim=1, keepdim=True)  # num_anchors x 1
-        for idx in range(IoU_argmax_keep.shape[0]):
-            IoU_pos[idx, IoU_argmax_keep[idx]] = -1
-        IoU_sec, IoU_argsec = torch.max(IoU_pos, dim=1)
-        assigned_annotations_sec = targets_box[IoU_argsec, :]
-
-        IoG_to_minimize = IoG(assigned_annotations_sec, predict_boxes_pos)
-        RepGT_loss = smooth_ln(IoG_to_minimize, 0.5)
-        RepGT_loss = RepGT_loss.mean() / (sampled_inds.numel())
-
-        #add RepBox losses
-        IoU_argmax_pos = IoU_argmax[sampled_pos_inds].float()
-        IoU_argmax_pos = IoU_argmax_pos.unsqueeze(0).t()
-        predict_boxes_pos = torch.cat([predict_boxes_pos,IoU_argmax_pos],dim=1)
-
-        predict_boxes_pos_np = predict_boxes_pos.detach().cpu().numpy()
-        num_gt = targets_box.shape[0]
-        predict_boxes_pos_sampled = []
-        for id in range(num_gt):
-            index = np.where(predict_boxes_pos_np[:, 4]==id)[0]
-            if index.shape[0]:
-                idx = random.choice(range(index.shape[0]))
-                predict_boxes_pos_sampled.append(predict_boxes_pos[index[idx], :4])
-        predict_boxes_pos_sampled = torch.stack(predict_boxes_pos_sampled)
-        iou_repbox = calc_iou(predict_boxes_pos_sampled, predict_boxes_pos_sampled)
-        mask = torch.lt(iou_repbox, 1.).float()
-        iou_repbox = iou_repbox * mask
-        RepBox_loss = smooth_ln(iou_repbox, 0.5)
-        RepBox_loss = RepBox_loss.sum() / torch.clamp(torch.sum(torch.gt(iou_repbox, 0)).float(), min=1.0) / (sampled_inds.numel())
-        
-        reg_loss = box_loss + 0.5 * RepGT_loss + 0.5 * RepBox_loss
-        objectness_loss = F.binary_cross_entropy_with_logits(
-            objectness[sampled_inds], labels[sampled_inds]
-        )        
+        reg_loss = box_loss + 0.5 * RepBox_losses + 0.5 * RepBox_losses
+           
         return objectness_loss, reg_loss
