@@ -23,6 +23,18 @@ def calc_iou(a, b):
 
     return IoU
 
+def onehot_iou(a ,b):
+    xx1 = torch.max(a[:, 0], b[:, 0])
+    yy1 = torch.max(a[:, 1], b[:, 1])
+    xx2 = torch.min(a[:, 2], b[:, 2])
+    yy2 = torch.min(a[:, 3], b[:, 3])
+    iw = torch.clamp(xx2 - xx1 + 1, min=0)
+    ih = torch.clamp(yy2 - yy1 + 1, min=0)
+
+    area1 = (a[: ,2] - a[:, 0] + 1) * (a[:, 3] - a[:, 1] + 1)
+    area2 = (b[: ,2] - b[:, 0] + 1) * (b[:, 3] - b[:, 1] + 1)
+
+    return iw * ih / (area1 + area2)
 
 def IoG(box_a, box_b):
 
