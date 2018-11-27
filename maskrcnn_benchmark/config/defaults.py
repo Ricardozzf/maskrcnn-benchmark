@@ -137,6 +137,9 @@ _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TEST = 2000
 # Custom rpn head, empty to use default conv or separable conv
 _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 
+# Select rpn computation loss function
+_C.MODEL.RPN.RPN_LOSS = "RPNLossComputation"
+
 
 # ---------------------------------------------------------------------------- #
 # ROI HEADS options
