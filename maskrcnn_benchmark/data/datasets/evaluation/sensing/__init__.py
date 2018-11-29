@@ -3,7 +3,7 @@ import logging
 from .sensing_eval import do_sensing_evaluation
 
 
-def voc_evaluation(dataset, predictions, output_folder, box_only, **_):
+def sensing_evaluation(dataset, predictions, output_folder, box_only, **_):
     logger = logging.getLogger("maskrcnn_benchmark.inference")
     if box_only:
         logger.warning("sensing evaluation doesn't support box_only, ignored.")
