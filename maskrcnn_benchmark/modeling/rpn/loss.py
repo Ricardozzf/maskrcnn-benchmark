@@ -341,7 +341,7 @@ class RPNRepLossComputation(object):
                 predict_boxes_pos = predict_boxes[sampled_pos_inds_batch, :]
                 IoU = calc_iou(anchors_bbox_batch, targets_box_batch[:, :4])  # num_anchors x num_annotations
                 IoU_max, IoU_argmax = torch.max(IoU, dim=1)  # num_anchors x 1
-                import pdb; pdb.set_trace()
+                
                 #add RepGT losses
                 IoU_pos = IoU[sampled_pos_inds_batch,:]
                 IoU_max_keep, IoU_argmax_keep = torch.max(IoU_pos, dim=1, keepdim=True)  # num_anchors x 1
