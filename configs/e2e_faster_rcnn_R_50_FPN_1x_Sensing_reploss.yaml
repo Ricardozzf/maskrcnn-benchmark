@@ -27,8 +27,8 @@ INPUT:
   MAX_SIZE_TEST : 1000
 
 DATASETS:
-  TRAIN: ("Sensing1_6_train","Sensing_coco_train",)
-  TEST: ("Sensing2018_test", "Sensing_coco_test",)
+  TRAIN: ("Sensing1_6_train","Sensing_coperson_train",)
+  TEST: ("Sensing2018_test", "Sensing_coperson_test",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:

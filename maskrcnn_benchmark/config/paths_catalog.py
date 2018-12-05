@@ -37,11 +37,11 @@ class DatasetCatalog(object):
             "Sensing/Sensing1-6",
             "Sensing/Sensing1-6/test1-6.txt"
         ),
-        "Sensing_coco_train":(
+        "Sensing_coperson_train":(
             "Sensing/coco",
             "Sensing/coco/train_coco.txt"
         ),
-        "Sensing_coco_test":(
+        "Sensing_coperson_test":(
             "Sensing/coco",
             "Sensing/coco/test_coco.txt"
         ),
