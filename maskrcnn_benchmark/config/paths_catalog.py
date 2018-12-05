@@ -21,17 +21,29 @@ class DatasetCatalog(object):
             "coco/val2014",
             "coco/annotations/instances_valminusminival2014.json",
         ),
-        "Sensing2018_train":(
-            "Sensing/train2018/images",
-            "Sensing/train2018/train2018.txt",
+        "Sensing_humancrowd_train":(
+            "Sensing/humancrowd",
+            "Sensing/humancrowd/train_humancrowd.txt",
         ),
-        "Sensing2018_val":(
-            "Sensing/val2018/images",
-            "Sensing/val2018/val2018.txt",
+        "Sensing_humancrowd_test":(
+            "Sensing/humancrowd",
+            "Sensing/humancrowd/test_humancrowd.txt",
         ),
-        "Sensing2018_test":(
-            "Sensing/test2018/images",
-            "Sensing/test2018/test2018.txt",
+        "Sensing1_6_train":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/train1-6.txt"
+        ),
+        "Sensing1_6_test":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/test1-6.txt"
+        ),
+        "Sensing_coco_train":(
+            "Sensing/coco",
+            "Sensing/coco/train_coco.txt"
+        ),
+        "Sensing_coco_test":(
+            "Sensing/coco",
+            "Sensing/coco/test_coco.txt"
         ),
         "voc_2007_trainval": ("voc/VOC2007", 'trainval'),
         "voc_2007_test": ("voc/VOC2007", 'test'),
