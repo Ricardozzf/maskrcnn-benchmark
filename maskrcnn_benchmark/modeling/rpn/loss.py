@@ -381,7 +381,7 @@ class RPNRepLossComputation(object):
         if RepBox_losses!=RepBox_losses or RepGT_losses!=RepGT_losses or box_loss!=box_loss:
             import pdb; pdb.set_trace()
         
-        reg_loss = box_loss + 0.5 * RepBox_losses + 0.5 * RepBox_losses
+        reg_loss = box_loss + 0.5 * RepGT_losses + 0.5 * RepBox_losses
            
         return objectness_loss, reg_loss
 

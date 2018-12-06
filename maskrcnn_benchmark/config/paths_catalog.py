@@ -29,13 +29,33 @@ class DatasetCatalog(object):
             "Sensing/humancrowd",
             "Sensing/humancrowd/test_humancrowd.txt",
         ),
-        "Sensing1_6_train":(
+        "Sensing1":(
             "Sensing/Sensing1-6",
-            "Sensing/Sensing1-6/train1-6.txt"
+            "Sensing/Sensing1-6/1/1.txt"
         ),
-        "Sensing1_6_test":(
+        "Sensing2":(
             "Sensing/Sensing1-6",
-            "Sensing/Sensing1-6/test1-6.txt"
+            "Sensing/Sensing1-6/2/2.txt"
+        ),
+        "Sensing3":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/3/3.txt"
+        ),
+        "Sensing4":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/4/4.txt"
+        ),
+        "Sensing5":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/5/5.txt"
+        ),
+        "Sensing6":(
+            "Sensing/Sensing1-6",
+            "Sensing/Sensing1-6/6/6.txt"
+        ),
+        "SensingTest":(
+            "Sensing/SensingTest",
+            "Sensing/SensingTest/SensingTest.txt"
         ),
         "Sensing_coperson_train":(
             "Sensing/coco",
