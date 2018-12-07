@@ -4,31 +4,31 @@ from PIL import Image
 import torch
 
 class SensingDataset(object):
-    def __init__(self, annPath, imagePath, remove_annotations_without_images, transforms= None):
+    def __init__(self, ann_file, root, remove_annotations_without_images, transforms=None):
         # as you would do normally
         self.anns = []
-        for root, _, files in os.walk(annPath):
+        for rootPath, _, files in os.walk(ann_file):
             for filename in files:
                 if not filename.endswith('.txt'):
                     continue
-                self.anns.append(os.path.join(root, filename))
+                self.anns.append(os.path.join(rootPath, filename))
         self.images = []
-        for root, _, files in os.walk(imagePath):
+        for rootPath, _, files in os.walk(root):
             for filename in files:
                 if not filename.endswith('.jpg'):
                     continue
-                self.images.append(os.path.join(root, filename))
+                self.images.append(os.path.join(rootPath, filename))
 
         if remove_annotations_without_images:
             self.anns = [
                 annfile
                 for annfile in self.anns
-                if(os.path.exists(os.path.join(annPath, annfile.replace('.txt', '.jpg'))))
+                if(os.path.exists(os.path.join(ann_file, annfile.replace('.txt', '.jpg'))))
             ]
             self.images = [
                 imagefile
                 for imagefile in self.images
-                if(os.path.exists(os.path.join(imagePath, imagefile.replace('.jpg', '.txt'))))
+                if(os.path.exists(os.path.join(root, imagefile.replace('.jpg', '.txt'))))
             ]
         self.transforms = transforms
         
