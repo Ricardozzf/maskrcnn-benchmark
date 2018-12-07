@@ -18,7 +18,7 @@ class SensingDataset(object):
                 if not filename.endswith('.jpg'):
                     continue
                 self.images.append(os.path.join(rootPath, filename))
-        
+        '''
         if remove_annotations_without_images:
             self.anns = [
                 annfile
@@ -30,7 +30,7 @@ class SensingDataset(object):
                 for imagefile in self.images
                 if(os.path.exists(os.path.join(ann_file, imagefile.replace('.jpg', '.txt'))))
             ]
-        
+        '''
         self.transforms = transforms
         
         self.classes = ['background', 'person']
