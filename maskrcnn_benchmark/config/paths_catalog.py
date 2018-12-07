@@ -44,12 +44,12 @@ class DatasetCatalog(object):
             "ann_file":"Sensing/SensingPersonTest/labels"
         },
         "Sensing_coperson_train":{
-            "img_dir":"Sensing/coco",
-            "ann_file":"Sensing/coco/train_coco.txt"
+            "img_dir":"Sensing/Sensing_coperson_train/images",
+            "ann_file":"Sensing/Sensing_coperson_train/labels"
         },
         "Sensing_coperson_test":{
-            "img_dir":"Sensing/coco",
-            "ann_file":"Sensing/coco/test_coco.txt"
+            "img_dir":"Sensing/Sensing_coperson_test/images",
+            "ann_file":"Sensing/Sensing_coperson_test/labels"
         },
         "coco_2014_train": {
             "img_dir": "coco/train2014",
