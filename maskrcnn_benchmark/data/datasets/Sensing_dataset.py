@@ -25,6 +25,7 @@ class SensingDataset(object):
         imPath = line.rstrip()
         txtPath = imPath.replace('images','labels').replace('.jpg','.txt')
         image = Image.open(imPath).convert("RGB")
+        print(line)
         
         # load the bounding boxes as a list of list of boxes
         # in this case, for illustrative purposes, we use

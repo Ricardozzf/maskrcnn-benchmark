@@ -349,7 +349,7 @@ class RPNRepLossComputation(object):
                     IoU_pos[idx, IoU_argmax_keep[idx]] = -1
                 IoU_sec, IoU_argsec = torch.max(IoU_pos, dim=1)
                 assigned_annotations_sec = targets_box_batch[IoU_argsec, :]
-
+                import pdb; pdb.set_trace()
                 IoG_to_minimize = IoG(assigned_annotations_sec, predict_boxes_pos)
                 RepGT_loss = smooth_ln(IoG_to_minimize, 0.5)
                 RepGT_loss = RepGT_loss.mean() / sampled_pos_inds.numel()
@@ -375,11 +375,12 @@ class RPNRepLossComputation(object):
                 RepBox_loss = smooth_ln(iou_repbox, 0.5)
                 RepBox_loss = RepBox_loss.sum() / torch.clamp(torch.sum(torch.gt(iou_repbox, 0)).float(), min=1.0) / sampled_pos_inds.numel()
                 RepBox_losses += RepBox_loss
+                if RepBox_losses!=RepBox_losses or RepGT_losses!=RepGT_losses or box_loss!=box_loss:
+                    import pdb; pdb.set_trace()
 
         RepGT_losses /= batches
         RepBox_losses /= batches
-        if RepBox_losses!=RepBox_losses or RepGT_losses!=RepGT_losses or box_loss!=box_loss:
-            import pdb; pdb.set_trace()
+        
         
         reg_loss = box_loss + 0.5 * RepGT_losses + 0.5 * RepBox_losses
            
