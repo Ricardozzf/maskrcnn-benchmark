@@ -4,16 +4,31 @@ from PIL import Image
 import torch
 
 class SensingDataset(object):
-    def __init__(self, ann_file, root, remove_annotations_without_images, transforms= None):
+    def __init__(self, annPath, imagePath, remove_annotations_without_images, transforms= None):
         # as you would do normally
-        with open(ann_file,'r') as fp:
-            self.lines = [line.rstrip() for line in fp.readlines()]
-        
+        self.anns = []
+        for root, _, files in os.walk(annPath):
+            for filename in files:
+                if not filename.endswith('.txt'):
+                    continue
+                self.anns.append(os.path.join(root, filename))
+        self.images = []
+        for root, _, files in os.walk(imagePath):
+            for filename in files:
+                if not filename.endswith('.jpg'):
+                    continue
+                self.images.append(os.path.join(root, filename))
+
         if remove_annotations_without_images:
-            self.lines = [
-                ann_file_line 
-                for ann_file_line in self.lines
-                if(os.path.exists(ann_file_line))
+            self.anns = [
+                annfile
+                for annfile in self.anns
+                if(os.path.exists(os.path.join(annPath, annfile.replace('.txt', '.jpg'))))
+            ]
+            self.images = [
+                imagefile
+                for imagefile in self.images
+                if(os.path.exists(os.path.join(imagePath, imagefile.replace('.jpg', '.txt'))))
             ]
         self.transforms = transforms
         
@@ -21,11 +36,9 @@ class SensingDataset(object):
 
     def __getitem__(self, idx):
         # load the image as a PIL Image
-        line = self.lines[idx]
-        imPath = line.rstrip()
-        txtPath = imPath.replace('images','labels').replace('.jpg','.txt')
+        txtPath = self.anns[idx]
+        imPath = txtPath.replace('labels', 'images').replace('.txt', '.jpg')
         image = Image.open(imPath).convert("RGB")
-        print(line)
         
         # load the bounding boxes as a list of list of boxes
         # in this case, for illustrative purposes, we use
