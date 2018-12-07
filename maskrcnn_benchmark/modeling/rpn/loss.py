@@ -349,7 +349,7 @@ class RPNRepLossComputation(object):
                     IoU_pos[idx, IoU_argmax_keep[idx]] = -1
                 IoU_sec, IoU_argsec = torch.max(IoU_pos, dim=1)
                 assigned_annotations_sec = targets_box_batch[IoU_argsec, :]
-                import pdb; pdb.set_trace()
+                
                 IoG_to_minimize = IoG(assigned_annotations_sec, predict_boxes_pos)
                 RepGT_loss = smooth_ln(IoG_to_minimize, 0.5)
                 RepGT_loss = RepGT_loss.mean() / sampled_pos_inds.numel()
