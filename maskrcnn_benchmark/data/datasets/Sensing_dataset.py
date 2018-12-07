@@ -18,18 +18,19 @@ class SensingDataset(object):
                 if not filename.endswith('.jpg'):
                     continue
                 self.images.append(os.path.join(rootPath, filename))
-
+        
         if remove_annotations_without_images:
             self.anns = [
                 annfile
                 for annfile in self.anns
-                if(os.path.exists(os.path.join(ann_file, annfile.replace('.txt', '.jpg'))))
+                if(os.path.exists(os.path.join(root, annfile.replace('.txt', '.jpg'))))
             ]
             self.images = [
                 imagefile
                 for imagefile in self.images
-                if(os.path.exists(os.path.join(root, imagefile.replace('.jpg', '.txt'))))
+                if(os.path.exists(os.path.join(ann_file, imagefile.replace('.jpg', '.txt'))))
             ]
+        
         self.transforms = transforms
         
         self.classes = ['background', 'person']
@@ -78,7 +79,7 @@ class SensingDataset(object):
         # of the image, as it can be more efficient than loading the
         # image from disk
         image = Image.open(self.anns[idx].replace('labels', 'images').replace('.txt', '.jpg'))
-        img_width,img_height = image.size
+        img_width, img_height = image.size
 
         return {"height": img_height, "width": img_width}
     
