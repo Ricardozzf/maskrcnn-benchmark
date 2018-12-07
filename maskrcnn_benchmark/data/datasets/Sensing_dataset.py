@@ -70,22 +70,21 @@ class SensingDataset(object):
         return image, boxlist, idx
 
     def __len__(self):
-        return len(self.lines)
+        return len(self.anns)
 
     def get_img_info(self, idx):
         # get img_height and img_width. This is used if
         # we want to split the batches according to the aspect ratio
         # of the image, as it can be more efficient than loading the
         # image from disk
-        image = Image.open(self.lines[idx])
+        image = Image.open(self.anns[idx].replace('labels', 'images').replace('.txt', '.jpg'))
         img_width,img_height = image.size
 
         return {"height": img_height, "width": img_width}
     
     def get_groundtruth(self, idx):
-        line = self.lines[idx]
-        imPath = line.rstrip()
-        txtPath = imPath.replace('images', 'labels').replace('.jpg', '.txt')
+        txtPath = self.anns[idx]
+        imPath = txtPath.replace('labels', 'images').replace('.txt', '.jpg')
 
         image = Image.open(imPath).convert("RGB")
         
