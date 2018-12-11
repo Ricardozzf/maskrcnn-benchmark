@@ -1,9 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-# Code is copy-pasted exactly as in torch.utils.data.distributed.
+# Code is copy-pasted exactly as in torch.utils.data.distributed,
+# with a modification in the import to use the deprecated backend
 # FIXME remove this once c10d fixes the bug it has
 import math
 import torch
-import torch.distributed as dist
+import torch.distributed.deprecated as dist
 from torch.utils.data.sampler import Sampler
 
 
