@@ -17,6 +17,7 @@ from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 
 from maskrcnn_benchmark.structures.repulsionloss_op import IoG
 from maskrcnn_benchmark.structures.repulsionloss_op import smooth_ln
+from maskrcnn_benchmark.structures.repulsionloss_op import smooth_l1
 from maskrcnn_benchmark.structures.repulsionloss_op import calc_iou
 from maskrcnn_benchmark.structures.repulsionloss_op import onehot_iou
 from maskrcnn_benchmark.modeling import registry
@@ -284,6 +285,13 @@ class RPNRepLossComputation(object):
             size_average=False,
         ) / (sampled_inds.numel())
 
+        #import pdb
+        #pdb.set_trace()
+        box_loss_tmp = smooth_l1(box_regression[sampled_pos_inds],
+            regression_targets[sampled_pos_inds],
+            beta=1.0 / 9,)
+
+
         objectness_loss = F.binary_cross_entropy_with_logits(
             objectness[sampled_inds], labels[sampled_inds]
         )     
@@ -306,6 +314,7 @@ class RPNRepLossComputation(object):
 
         RepGT_losses = 0
         RepBox_losses = 0
+        tmp_index = 0
         for batch in range(batches):
             box_regression_dx = box_regression_reploss[batch,:,0]
             box_regression_dy = box_regression_reploss[batch,:,1]
@@ -349,9 +358,13 @@ class RPNRepLossComputation(object):
                     IoU_pos[idx, IoU_argmax_keep[idx]] = -1
                 IoU_sec, IoU_argsec = torch.max(IoU_pos, dim=1)
                 assigned_annotations_sec = targets_box_batch[IoU_argsec, :]
-                
+
+
+                box_loss_tmp_batch = box_loss_tmp[tmp_index: tmp_index+sampled_pos_inds_batch.shape[0]]
+                box_loss_tmp_batch = torch.sum(box_loss_tmp_batch, dim=1)
                 IoG_to_minimize = IoG(assigned_annotations_sec, predict_boxes_pos)
                 RepGT_loss = smooth_ln(IoG_to_minimize, 0.5)
+                RepGT_loss = RepGT_loss * torch.lt(0.1*RepGT_loss, box_loss_tmp_batch).float()
                 RepGT_loss = RepGT_loss.mean() / sampled_pos_inds.numel()
                 RepGT_losses += RepGT_loss
 
@@ -363,26 +376,32 @@ class RPNRepLossComputation(object):
                 predict_boxes_pos_np = predict_boxes_pos.detach().cpu().numpy()
                 num_gt = targets_box_batch.shape[0]
                 predict_boxes_pos_sampled = []
+                box_loss_tmp_batch_sampled = []
                 for id in range(num_gt):
                     index = np.where(predict_boxes_pos_np[:, 4]==id)[0]
                     if index.shape[0]:
                         idx = random.choice(range(index.shape[0]))
                         predict_boxes_pos_sampled.append(predict_boxes_pos[index[idx], :4])
+                        box_loss_tmp_batch_sampled.append(box_loss_tmp_batch[index[idx]])
                 predict_boxes_pos_sampled = torch.stack(predict_boxes_pos_sampled)
+                box_loss_tmp_batch_sampled = torch.stack(box_loss_tmp_batch_sampled)
                 iou_repbox = calc_iou(predict_boxes_pos_sampled, predict_boxes_pos_sampled)
                 mask = torch.lt(iou_repbox, 1.).float()
                 iou_repbox = iou_repbox * mask
                 RepBox_loss = smooth_ln(iou_repbox, 0.5)
-                RepBox_loss = RepBox_loss.sum() / torch.clamp(torch.sum(torch.gt(iou_repbox, 0)).float(), min=1.0) / sampled_pos_inds.numel()
+                RepBox_loss = RepBox_loss * torch.lt(0.85*RepBox_loss, box_loss_tmp_batch_sampled).float()
+                RepBox_loss = RepBox_loss.sum() / sampled_pos_inds.numel()
                 RepBox_losses += RepBox_loss
+
+
+                tmp_index += sampled_pos_inds_batch.shape[0]
                 if RepBox_losses!=RepBox_losses or RepGT_losses!=RepGT_losses or box_loss!=box_loss:
                     import pdb; pdb.set_trace()
 
         RepGT_losses /= batches
         RepBox_losses /= batches
-        
-        
-        reg_loss = box_loss + 0.5 * RepGT_losses + 0.5 * RepBox_losses
+        reg_loss = box_loss + 0.1 * RepGT_losses +  0.7 * RepBox_losses
+
            
         return objectness_loss, reg_loss
 

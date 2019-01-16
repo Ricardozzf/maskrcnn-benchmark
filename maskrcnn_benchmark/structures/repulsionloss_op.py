@@ -56,4 +56,14 @@ def smooth_ln(x, smooth):
         ((x - smooth) / (1 - smooth)) - np.log(1 - smooth)
     )
 
+def smooth_l1(input, target, beta=1. / 9):
+    """
+    very similar to the smooth_l1_loss from pytorch, but with
+    the extra beta parameter
+    """
+    n = torch.abs(input - target)
+    cond = n < beta
+    loss = torch.where(cond, 0.5 * n ** 2 / beta, n - 0.5 * beta)
+    return loss
+
 
