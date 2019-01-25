@@ -140,6 +140,12 @@ _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 # Select rpn computation loss function
 _C.MODEL.RPN.RPN_LOSS = "RPNLossComputation"
 
+# Select rpn instance mask conv backbone
+_C.MODEL.RPN.INSTANCE_MASK = "SingleConvRPNInstanceHead"
+
+# Rpn Instance mask seg
+_C.MODEL.RPN.USE_INSTANCE = False
+
 
 # ---------------------------------------------------------------------------- #
 # ROI HEADS options

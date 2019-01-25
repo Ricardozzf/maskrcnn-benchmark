@@ -5,4 +5,5 @@ from maskrcnn_benchmark.utils.registry import Registry
 BACKBONES = Registry()
 ROI_BOX_FEATURE_EXTRACTORS = Registry()
 RPN_HEADS = Registry()
+INSTANCE_MASK = Registry()
 RPN_LOSS = Registry()

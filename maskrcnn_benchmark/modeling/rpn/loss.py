@@ -20,6 +20,7 @@ from maskrcnn_benchmark.structures.repulsionloss_op import smooth_ln
 from maskrcnn_benchmark.structures.repulsionloss_op import smooth_l1
 from maskrcnn_benchmark.structures.repulsionloss_op import calc_iou
 from maskrcnn_benchmark.structures.repulsionloss_op import onehot_iou
+from maskrcnn_benchmark.structures.gaussian_mask_op import get_gaussian_target
 from maskrcnn_benchmark.modeling import registry
 
 @registry.RPN_LOSS.register("RPNLossComputation")
@@ -558,3 +559,57 @@ class RPNIoULossComputation(object):
             objectness[sampled_inds], labels[sampled_inds]
         )
         return objectness_loss, box_loss
+
+#*****************************************************************#
+#                     add mask_feature loss                       #
+#                     author: zhanfan zou                         #
+#                     data: 2019.01.23                            #
+#*****************************************************************#
+
+@registry.RPN_LOSS.register("RPNInstanceLossComputation")
+class RPNInstanceLossComputation(object):
+
+    def prepare_targets(self, imageSize, maskSize):
+        
+        gaussian_mask = get_gaussian_target(targets, imageSize, maskSize)
+        
+        return gaussian_mask
+
+    def __call__(self, images, mask_logits, targets):
+        """
+        Arguments:
+            images (ImageList)
+            mask_logits (Tensor)
+            targets (list[BoxList])
+
+        Return:
+            mask_loss (Tensor): scalar tensor containing the loss
+        """
+        import pdb; pdb.set_trace()
+        mask_width = mask_logits.shape[-1]
+        mask_height = mask_logits.shape[-2]
+
+        image_width = images.shape[-1]
+        image_height = images.shape[-2]
+        self.imageSize = (image_width, image_height)
+        self.maskSize = (mask_width, mask_height)
+        
+
+        gaussian_mask = prepare_targets(targets, self.imageSize, self.maskSize)
+
+        # torch.mean (in binary_cross_entropy_with_logits) doesn't
+        # accept empty tensors, so handle it separately
+        if gaussian_mask.numel() == 0:
+            return mask_logits.sum() * 0
+
+        mask_loss = F.binary_cross_entropy_with_logits(
+            mask_logits, gaussian_mask
+        )
+        return mask_loss
+
+
+def make_rpn_mask_loss_evaluator(cfg):
+
+    loss_evaluator = RPNInstanceLossComputation()
+
+    return loss_evaluator
