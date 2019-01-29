@@ -585,25 +585,43 @@ class RPNInstanceLossComputation(object):
         Return:
             mask_loss (Tensor): scalar tensor containing the loss
         """
-        import pdb; pdb.set_trace()
-        mask_width = mask_logits.shape[-1]
-        mask_height = mask_logits.shape[-2]
-
-        image_width = images.shape[-1]
-        image_height = images.shape[-2]
-        self.imageSize = (image_width, image_height)
-        self.maskSize = (mask_width, mask_height)
         
+        import cv2
+        mask_width = mask_logits[0].shape[-1]
+        mask_height = mask_logits[0].shape[-2]
 
-        gaussian_mask = prepare_targets(targets, self.imageSize, self.maskSize)
+
+        self.imageSizes = images.image_sizes
+        self.maskSize = (mask_width, mask_height)
+        max_size = tuple(max(s) for s in zip(*[img.shape for img in images.tensors]))
+
+        img_test = (images.tensors.permute(0,2,3,1)[0].cpu().numpy() + 127) / 255.0
+        for bbox in targets[0].bbox:
+            x1 = bbox[0]
+            y1 = bbox[1]
+            x2 = bbox[2]
+            y2 = bbox[3]
+            cv2.rectangle(img_test,(x1,y1),(x2,y2),(255,0,0),2)
+        
+        gaussian_mask = get_gaussian_target(targets, max_size, self.maskSize)
+
+        gaussian_mask = cat(gaussian_mask, dim=0)
+
+
+        #cv2.imshow("test", img_test)
+        #cv2.imshow("mask", gaussian_mask[0].numpy())
+        #cv2.waitKey(0)
 
         # torch.mean (in binary_cross_entropy_with_logits) doesn't
         # accept empty tensors, so handle it separately
-        if gaussian_mask.numel() == 0:
-            return mask_logits.sum() * 0
-
+        '''
+        for i in range(len(targets)):
+            if gaussian_mask[i].numel() == 0:
+                return mask_logits.sum() * 0
+        '''
+        assert mask_logits[0].shape[1] == 1, 'NumClass should be 1!'
         mask_loss = F.binary_cross_entropy_with_logits(
-            mask_logits, gaussian_mask
+            mask_logits[0], gaussian_mask
         )
         return mask_loss
 

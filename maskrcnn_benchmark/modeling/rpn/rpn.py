@@ -129,7 +129,7 @@ class RPNInstanceHead(nn.Module):
             next_feature = layer_features
             self.blocks.append(layer_name)
 
-        module = nn.Conv2d(next_feature, classesNum, 1, stride=1, padding=0)
+        module = nn.Conv2d(next_feature, classesNum-1, 1, stride=1, padding=0)
         layer_name = "instance_predict"
         nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
         nn.init.constant_(module.bias, 0)

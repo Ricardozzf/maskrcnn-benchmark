@@ -35,11 +35,11 @@ def get_gaussian_kernel(rectX=51, rectY=51, sigma=10, channels=1):
     gaussian_kernel = torch.unsqueeze(gaussian_kernel, 0)
     gaussian_kernel = torch.unsqueeze(gaussian_kernel, 0)
     gaussian_kernel = F.interpolate(gaussian_kernel, size=[rectX, rectY],mode='bilinear',align_corners=True)
-    gaussian_kernel = torch.squeeze(gaussian_kernel)
+    gaussian_kernel = torch.squeeze(gaussian_kernel, dim=1)
     
     return gaussian_kernel
 
-def get_gaussian_target(targets, imageSize, maskResize):
+def get_gaussian_target(targets, imageSize, maskResize = None):
     """
     Arguments:
         targets (list[BoxList])
@@ -52,7 +52,8 @@ def get_gaussian_target(targets, imageSize, maskResize):
 
         bboxes = target.bbox
         mode = target.mode
-        feature_target = torch.zeros(imageSize)
+        feature_target = torch.zeros((1,imageSize[1],imageSize[2]))
+
         if mode not in ("xyxy"):
             raise ValueError("mode should be 'xyxy'")
         for bbox in bboxes:
@@ -60,15 +61,35 @@ def get_gaussian_target(targets, imageSize, maskResize):
             y1 = int(bbox[1])
             x2 = int(bbox[2])
             y2 = int(bbox[3])
+
+            if x1 < 0:
+                x1 = 0
+                x2 = x2 - x1
+            if y1 < 0:
+                y1 = 0
+                y2 = y2 - y1
+            if x2 > imageSize[2]:
+                x2 = imageSize[2]
+                x1 = x1 - (x2 - imageSize[2])
+            if  y2 > imageSize[1]:
+                y2 = imageSize[1]
+                y1 = y1 - (y2 - imageSize[1])
+
             width = x2 - x1
             height = y2 - y1
+            if width < 5 or height < 5:
+                continue
             
             gaussian_feature = get_gaussian_kernel(height, width)
             
-            feature_target[y1:y2, x1:x2] = feature_target[y1:y2, x1:x2] + gaussian_feature
+            try:
+                feature_target[0, y1:y2, x1:x2] = feature_target[0, y1:y2, x1:x2] + gaussian_feature
+            except :
+                import pdb; pdb.set_trace()
 
-        feature_target = Ft.resize(feature_target, maskResize)
-
+        #feature_target = Ft.resize(feature_target, maskResize)
+        feature_target = feature_target.unsqueeze(0)
+        feature_target = F.interpolate(feature_target, size=[maskResize[1], maskResize[0]],mode='bilinear',align_corners=True)
         gaussian_targets.append(feature_target)
     
     return gaussian_targets
