@@ -606,6 +606,8 @@ class RPNInstanceLossComputation(object):
         gaussian_mask = get_gaussian_target(targets, max_size, self.maskSize)
 
         gaussian_mask = cat(gaussian_mask, dim=0)
+        device = mask_logits[0].device
+        gaussian_mask = gaussian_mask.to(device)
 
 
         #cv2.imshow("test", img_test)
@@ -619,8 +621,9 @@ class RPNInstanceLossComputation(object):
             if gaussian_mask[i].numel() == 0:
                 return mask_logits.sum() * 0
         '''
+        
         assert mask_logits[0].shape[1] == 1, 'NumClass should be 1!'
-        mask_loss = F.binary_cross_entropy_with_logits(
+        mask_loss = F.mse_loss(
             mask_logits[0], gaussian_mask
         )
         return mask_loss

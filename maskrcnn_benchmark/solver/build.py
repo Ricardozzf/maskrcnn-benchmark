@@ -11,6 +11,9 @@ def make_optimizer(cfg, model):
             continue
         lr = cfg.SOLVER.BASE_LR
         weight_decay = cfg.SOLVER.WEIGHT_DECAY
+        if "instanceConv_" in key:
+            lr = cfg.SOLVER.BASE_LR * 2
+            weight_decay = cfg.SOLVER.WEIGHT_DECAY_BIAS
         if "bias" in key:
             lr = cfg.SOLVER.BASE_LR * cfg.SOLVER.BIAS_LR_FACTOR
             weight_decay = cfg.SOLVER.WEIGHT_DECAY_BIAS
