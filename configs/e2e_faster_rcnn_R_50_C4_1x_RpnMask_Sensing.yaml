@@ -13,8 +13,8 @@ INPUT:
   MIN_SIZE_TEST : 600
   MAX_SIZE_TEST : 1000
 DATASETS:
-  TRAIN: ("SensingPerson1","SensingPerson2","SensingPerson3","SensingPerson4","SensingPerson5","SensingPerson6","Sensing_coperson_train",)
-  TEST: ("SensingPersonTest", "Sensing_coperson_test",)
+  TRAIN: ("Sensing_humancrowd_train",)
+  TEST: ("Sensing_humancrowd_test",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
