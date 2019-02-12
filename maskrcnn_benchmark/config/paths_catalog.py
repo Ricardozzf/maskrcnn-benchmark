@@ -50,6 +50,7 @@ class DatasetCatalog(object):
         "Sensing_coperson_test":{
             "img_dir":"Sensing/Sensing_coperson_test/images",
             "ann_file":"Sensing/Sensing_coperson_test/labels"
+        },
         "coco_2017_train": {
             "img_dir": "coco/train2017",
             "ann_file": "coco/annotations/instances_train2017.json"
