@@ -55,6 +55,11 @@ ResNet101FPNStagesTo5 = tuple(
     for (i, c, r) in ((1, 3, True), (2, 4, True), (3, 23, True), (4, 3, True))
 )
 
+ResNet50StagesTo4_Seg = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 3, True), (2, 4, False), (3, 6, True))
+)
+
 
 class ResNet(nn.Module):
     def __init__(self, cfg):
@@ -302,4 +307,5 @@ _STAGE_SPECS = Registry({
     "R-50-C5": ResNet50StagesTo5,
     "R-50-FPN": ResNet50FPNStagesTo5,
     "R-101-FPN": ResNet101FPNStagesTo5,
+    "R-50-C2": ResNet50StagesTo4_Seg,
 })

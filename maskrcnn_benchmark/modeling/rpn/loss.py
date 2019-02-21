@@ -21,6 +21,7 @@ from maskrcnn_benchmark.structures.repulsionloss_op import smooth_l1
 from maskrcnn_benchmark.structures.repulsionloss_op import calc_iou
 from maskrcnn_benchmark.structures.repulsionloss_op import onehot_iou
 from maskrcnn_benchmark.structures.gaussian_mask_op import get_gaussian_target
+from maskrcnn_benchmark.structures.gaussian_mask_op import weighted_mse_loss
 from maskrcnn_benchmark.modeling import registry
 
 @registry.RPN_LOSS.register("RPNLossComputation")
@@ -603,17 +604,18 @@ class RPNInstanceLossComputation(object):
             y2 = bbox[3]
             cv2.rectangle(img_test,(x1,y1),(x2,y2),(255,0,0),2)
         
-        gaussian_mask = get_gaussian_target(targets, max_size, self.maskSize)
-
+        gaussian_mask, mseloss_weights = get_gaussian_target(targets, max_size, self.maskSize)
+        
         gaussian_mask = cat(gaussian_mask, dim=0)
+        mseloss_weights = cat(mseloss_weights, dim=0)
         device = mask_logits[0].device
         gaussian_mask = gaussian_mask.to(device)
-
-
+        mseloss_weights = mseloss_weights.to(device)
+        
         #cv2.imshow("test", img_test)
-        #cv2.imshow("mask", gaussian_mask[0].numpy())
+        #cv2.imshow("mask", gaussian_mask[0].squeeze().cpu().numpy())
         #cv2.waitKey(0)
-
+        
         # torch.mean (in binary_cross_entropy_with_logits) doesn't
         # accept empty tensors, so handle it separately
         '''
@@ -623,9 +625,15 @@ class RPNInstanceLossComputation(object):
         '''
         
         assert mask_logits[0].shape[1] == 1, 'NumClass should be 1!'
-        mask_loss = F.mse_loss(
+
+        
+        mask_loss1 = F.mse_loss(
             mask_logits[0], gaussian_mask
         )
+        
+        
+        #import pdb; pdb.set_trace()
+        mask_loss = weighted_mse_loss(mask_logits[0], gaussian_mask, mseloss_weights)
         return mask_loss
 
 

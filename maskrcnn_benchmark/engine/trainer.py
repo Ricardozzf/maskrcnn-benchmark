@@ -77,6 +77,7 @@ def do_train(
 
         optimizer.zero_grad()
         losses.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 6)
         optimizer.step()
 
         batch_time = time.time() - end

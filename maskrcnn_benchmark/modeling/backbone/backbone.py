@@ -35,6 +35,12 @@ def build_resnet_fpn_backbone(cfg):
     model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
     return model
 
+@registry.BACKBONES.register("R-50-C2")
+def build_resnet_backbone_simple(cfg):
+    body = resnet.ResNet(cfg)
+    model = nn.Sequential(OrderedDict([("body", body)]))
+    return model
+
 
 def build_backbone(cfg):
     assert cfg.MODEL.BACKBONE.CONV_BODY in registry.BACKBONES, \

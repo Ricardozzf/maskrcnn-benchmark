@@ -145,6 +145,7 @@ _C.MODEL.RPN.INSTANCE_MASK = "SingleConvRPNInstanceHead"
 
 # Rpn Instance mask seg
 _C.MODEL.RPN.USE_INSTANCE = False
+_C.MODEL.RPN.CONV_LAYERS = 128
 
 
 # ---------------------------------------------------------------------------- #

@@ -48,6 +48,7 @@ def get_gaussian_target(targets, imageSize, maskResize = None):
         gaussian_targets (list[Tensor])
     """
     gaussian_targets = []
+    mseloss_weights = []
     for target in targets:
 
         bboxes = target.bbox
@@ -90,6 +91,18 @@ def get_gaussian_target(targets, imageSize, maskResize = None):
         #feature_target = Ft.resize(feature_target, maskResize)
         feature_target = feature_target.unsqueeze(0)
         feature_target = F.interpolate(feature_target, size=[maskResize[1], maskResize[0]],mode='bilinear',align_corners=True)
+        mseloss_weight = torch.exp(torch.pow(feature_target.squeeze(),5)).view(1, -1)
+        mseloss_weight = F.softmax(mseloss_weight).view(1, 1, maskResize[1], maskResize[0])
+        mseloss_weight[mseloss_weight < 0.1] = 0.1
+
+        #feature_target = feature_target / feature_target.max()
         gaussian_targets.append(feature_target)
-    
-    return gaussian_targets
+        mseloss_weights.append(mseloss_weight)
+    return gaussian_targets, mseloss_weights
+
+def weighted_mse_loss(input, target, weights):
+    #import pdb; pdb.set_trace()
+    out = (torch.log(input+1)-target)**2
+    #out = out * weights.expand_as(out)
+    loss = out.mean() # or sum over whatever dimensions
+    return loss
