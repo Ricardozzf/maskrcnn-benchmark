@@ -626,10 +626,12 @@ class RPNInstanceLossComputation(object):
         
         assert mask_logits[0].shape[1] == 1, 'NumClass should be 1!'
 
-        
+        '''
         mask_loss1 = F.mse_loss(
             mask_logits[0], gaussian_mask
         )
+        '''
+        #mask_loss = F.smooth_l1_loss(mask_logits[0], gaussian_mask)
         
         
         #import pdb; pdb.set_trace()

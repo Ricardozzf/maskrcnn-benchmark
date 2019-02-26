@@ -53,7 +53,7 @@ def get_gaussian_target(targets, imageSize, maskResize = None):
 
         bboxes = target.bbox
         mode = target.mode
-        feature_target = torch.zeros((1,imageSize[1],imageSize[2]))
+        feature_target = torch.zeros(1,imageSize[1],imageSize[2],requires_grad=False)
 
         if mode not in ("xyxy"):
             raise ValueError("mode should be 'xyxy'")
@@ -102,7 +102,21 @@ def get_gaussian_target(targets, imageSize, maskResize = None):
 
 def weighted_mse_loss(input, target, weights):
     #import pdb; pdb.set_trace()
-    out = (torch.log(input+1)-target)**2
+    #out = (torch.log(input+1)-target)**2
     #out = out * weights.expand_as(out)
-    loss = out.mean() # or sum over whatever dimensions
+    #loss = out.mean() # or sum over whatever dimensions
+    smoothLoss = smooth_l1(input, target, 1)
+    #import pdb; pdb.set_trace()
+    loss = smoothLoss * weights
+    loss = smoothLoss.mean()
+    return loss
+
+def smooth_l1(input, target, beta=1. / 9):
+    """
+    very similar to the smooth_l1_loss from pytorch, but with
+    the extra beta parameter
+    """
+    n = torch.abs(input - target)
+    cond = n < beta
+    loss = torch.where(cond, 0.5 * n ** 2 / beta, n - 0.5 * beta)
     return loss
