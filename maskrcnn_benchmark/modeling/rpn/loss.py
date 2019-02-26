@@ -155,16 +155,12 @@ def make_rpn_loss_evaluator(cfg, box_coder):
         cfg.MODEL.RPN.BATCH_SIZE_PER_IMAGE, cfg.MODEL.RPN.POSITIVE_FRACTION
     )
 
-<<<<<<< HEAD
-    loss_evaluator = registry.RPN_LOSS[cfg.MODEL.RPN.RPN_LOSS](matcher, fg_bg_sampler, box_coder)
-=======
     loss_evaluator = RPNLossComputation(
         matcher,
         fg_bg_sampler,
         box_coder,
         generate_rpn_labels
     )
->>>>>>> f40f29931c7d68da696168d8fdf7332281de28a9
     return loss_evaluator
 
 #*****************************************************************#
