@@ -59,10 +59,43 @@ class RPNLossComputation(object):
         matched_targets = target[matched_idxs.clamp(min=0)]
         matched_targets.add_field("matched_idxs", matched_idxs)
         return matched_targets
+    
+    # set anchor rows 4n, and row:4n means anchor locates targets left, 
+    # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
+    def set_anchor_direction(self, target, anchor, matched_idxs):
+        n = anchor.shape[0] / 4
+        vector_n = [i for i in range(n)]
+        vector_n = torch.tensor(vector_n)
+        vector_4n = torch.zeros(4*n,1)
+
+        anchor_x = anchor[:, 0]
+        anchor_y = anchor[:, 1]
+        target_x = target[:, 0]
+        target_y = target[:, 1]
+
+        line_index = 4 * vector_n
+        vector_4n[line_index] = anchor_x <= target_x
+
+        line_index = 4 * vector_n + 1
+        vector_4n[line_index] = anchor_x > target_x
+
+        line_index = 4 * vector_n + 2
+        vector_4n[line_index] = anchor_y <= target_y
+
+        line_index = 4 * vector_n + 3
+        vector_4n[line_index] = anchor_y > target_y
+
+        nopositive_index = matched_idxs < 0
+        vector_4n = (nopositive_index + vector_4n).le(0)
+        matched_idxs[vector_4n] = -2
+
+        return matched_idxs
+
 
     def prepare_targets(self, anchors, targets):
         labels = []
         regression_targets = []
+        #import pdb; pdb.set_trace()
         for anchors_per_image, targets_per_image in zip(anchors, targets):
             matched_targets = self.match_targets_to_anchors(
                 anchors_per_image, targets_per_image, self.copied_fields
@@ -78,7 +111,9 @@ class RPNLossComputation(object):
 
             # discard anchors that go out of the boundaries of the image
             if "not_visibility" in self.discard_cases:
-                labels_per_image[~anchors_per_image.get_field("visibility")] = -1
+                labels_per_image_visibility = ~anchors_per_image.get_field("visibility")
+                labels_per_image_visibility = labels_per_image_visibility.view(-1,1).repeat(1,4).view(-1)
+                labels_per_image[labels_per_image_visibility] = -1
 
             # discard indices that are between thresholds
             if "between_thresholds" in self.discard_cases:

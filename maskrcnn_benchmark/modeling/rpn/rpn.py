@@ -87,9 +87,9 @@ class RPNHead(nn.Module):
         self.conv = nn.Conv2d(
             in_channels, in_channels, kernel_size=3, stride=1, padding=1
         )
-        self.cls_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1)
+        self.cls_logits = nn.Conv2d(in_channels, num_anchors * 4, kernel_size=1, stride=1)
         self.bbox_pred = nn.Conv2d(
-            in_channels, num_anchors * 4, kernel_size=1, stride=1
+            in_channels, num_anchors * 16, kernel_size=1, stride=1
         )
 
         for l in [self.conv, self.cls_logits, self.bbox_pred]:
@@ -206,7 +206,10 @@ class RPNModule(torch.nn.Module):
         """
         objectness, rpn_box_regression = self.head(features)
         anchors = self.anchor_generator(images, features)
-
+        
+        for anchor_perimage in anchors:
+            for anchor_perscale in anchor_perimage:
+                anchor_perscale.bbox = anchor_perscale.bbox.repeat(1,4).view(-1,4)
         if self.training:
             return self._forward_train(anchors, objectness, rpn_box_regression, targets)
         else:
@@ -226,6 +229,7 @@ class RPNModule(torch.nn.Module):
                 boxes = self.box_selector_train(
                     anchors, objectness, rpn_box_regression, targets
                 )
+               
         loss_objectness, loss_rpn_box_reg = self.loss_evaluator(
             anchors, objectness, rpn_box_regression, targets
         )
