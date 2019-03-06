@@ -69,7 +69,7 @@ class RPNLossComputation(object):
         
         vector_n = [i for i in range(n)]
         vector_n = torch.tensor(vector_n)
-        vector_4n = torch.zeros(4*n,1).type(torch.uint8)
+        vector_4n = torch.zeros(4*n).type(torch.uint8)
         vector_4n = vector_4n.to(device)
 
         anchor_x = anchor.bbox[:, 0]
@@ -78,17 +78,17 @@ class RPNLossComputation(object):
         target_y = target.bbox[:, 1]
 
         line_index = 4 * vector_n
-        vector_4n[line_index] = (anchor_x[line_index] <= target_x[line_index]).unsqueeze(1)
+        vector_4n[line_index] = (anchor_x[line_index] <= target_x[line_index])
 
         line_index = 4 * vector_n + 1
-        vector_4n[line_index] = (anchor_x[line_index] > target_x[line_index]).unsqueeze(1)
+        vector_4n[line_index] = (anchor_x[line_index] > target_x[line_index])
 
         line_index = 4 * vector_n + 2
-        vector_4n[line_index] = (anchor_y[line_index] <= target_y[line_index]).unsqueeze(1)
+        vector_4n[line_index] = (anchor_y[line_index] <= target_y[line_index])
 
         line_index = 4 * vector_n + 3
-        vector_4n[line_index] = (anchor_y[line_index] > target_y[line_index]).unsqueeze(1)
-        import pdb; pdb.set_trace()
+        vector_4n[line_index] = (anchor_y[line_index] > target_y[line_index])
+        
         nopositive_index = matched_idxs < 0
         vector_4n = (nopositive_index + vector_4n).le(0)
         matched_idxs[vector_4n] = -2
