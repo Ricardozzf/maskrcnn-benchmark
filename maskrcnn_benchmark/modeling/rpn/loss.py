@@ -63,28 +63,32 @@ class RPNLossComputation(object):
     # set anchor rows 4n, and row:4n means anchor locates targets left, 
     # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
     def set_anchor_direction(self, target, anchor, matched_idxs):
-        n = anchor.shape[0] / 4
+        
+        device = anchor.bbox.device
+        n = anchor.bbox.shape[0] // 4
+        
         vector_n = [i for i in range(n)]
         vector_n = torch.tensor(vector_n)
-        vector_4n = torch.zeros(4*n,1)
+        vector_4n = torch.zeros(4*n,1).type(torch.uint8)
+        vector_4n = vector_4n.to(device)
 
-        anchor_x = anchor[:, 0]
-        anchor_y = anchor[:, 1]
-        target_x = target[:, 0]
-        target_y = target[:, 1]
+        anchor_x = anchor.bbox[:, 0]
+        anchor_y = anchor.bbox[:, 1]
+        target_x = target.bbox[:, 0]
+        target_y = target.bbox[:, 1]
 
         line_index = 4 * vector_n
-        vector_4n[line_index] = anchor_x <= target_x
+        vector_4n[line_index] = (anchor_x[line_index] <= target_x[line_index]).unsqueeze(1)
 
         line_index = 4 * vector_n + 1
-        vector_4n[line_index] = anchor_x > target_x
+        vector_4n[line_index] = (anchor_x[line_index] > target_x[line_index]).unsqueeze(1)
 
         line_index = 4 * vector_n + 2
-        vector_4n[line_index] = anchor_y <= target_y
+        vector_4n[line_index] = (anchor_y[line_index] <= target_y[line_index]).unsqueeze(1)
 
         line_index = 4 * vector_n + 3
-        vector_4n[line_index] = anchor_y > target_y
-
+        vector_4n[line_index] = (anchor_y[line_index] > target_y[line_index]).unsqueeze(1)
+        import pdb; pdb.set_trace()
         nopositive_index = matched_idxs < 0
         vector_4n = (nopositive_index + vector_4n).le(0)
         matched_idxs[vector_4n] = -2
@@ -100,8 +104,9 @@ class RPNLossComputation(object):
             matched_targets = self.match_targets_to_anchors(
                 anchors_per_image, targets_per_image, self.copied_fields
             )
-
+            #import pdb; pdb.set_trace()
             matched_idxs = matched_targets.get_field("matched_idxs")
+            matched_idxs = self.set_anchor_direction(matched_targets, anchors_per_image, matched_idxs)
             labels_per_image = self.generate_labels_func(matched_targets)
             labels_per_image = labels_per_image.to(dtype=torch.float32)
 
