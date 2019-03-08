@@ -22,6 +22,7 @@ from maskrcnn_benchmark.structures.repulsionloss_op import smooth_ln
 from maskrcnn_benchmark.structures.repulsionloss_op import smooth_l1
 from maskrcnn_benchmark.structures.repulsionloss_op import calc_iou
 from maskrcnn_benchmark.structures.repulsionloss_op import onehot_iou
+from maskrcnn_benchmark.modeling.poolers import LevelMapper
 from maskrcnn_benchmark.modeling import registry
 
 @registry.RPN_LOSS.register("RPNLossComputation")
@@ -31,7 +32,7 @@ class RPNLossComputation(object):
     """
 
     def __init__(self, proposal_matcher, fg_bg_sampler, box_coder,
-                 generate_labels_func):
+                 generate_labels_func, cfg=None):
         """
         Arguments:
             proposal_matcher (Matcher)
@@ -45,6 +46,13 @@ class RPNLossComputation(object):
         self.copied_fields = []
         self.generate_labels_func = generate_labels_func
         self.discard_cases = ['not_visibility', 'between_thresholds']
+        self.feat_stride = torch.tensor(list(cfg.MODEL.RPN.ANCHOR_STRIDE))
+        scales = cfg.MODEL.ROI_BOX_HEAD.POOLER_SCALES
+        
+        lvl_min = -torch.log2(torch.tensor(scales[0], dtype=torch.float32)).item()
+        lvl_max = -torch.log2(torch.tensor(scales[-1], dtype=torch.float32)).item()
+        assert(len(self.feat_stride) == len(scales)+1), "direction anchor should use FPN!"
+        self.map_levels = LevelMapper(lvl_min, lvl_max)
 
     def match_targets_to_anchors(self, anchor, target, copied_fields=[]):
         match_quality_matrix = boxlist_iou(target, anchor)
@@ -63,6 +71,10 @@ class RPNLossComputation(object):
     # set anchor rows 4n, and row:4n means anchor locates targets left, 
     # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
     def set_anchor_direction(self, target, anchor, matched_idxs):
+        import pdb; pdb.set_trace()
+        levels = self.map_levels([anchor])
+        anchor_stride = self.feat_stride[levels]
+
         
         device = anchor.bbox.device
         n = anchor.bbox.shape[0] // 4
@@ -72,22 +84,31 @@ class RPNLossComputation(object):
         vector_4n = torch.zeros(4*n).type(torch.uint8)
         vector_4n = vector_4n.to(device)
 
-        anchor_x = anchor.bbox[:, 0]
-        anchor_y = anchor.bbox[:, 1]
-        target_x = target.bbox[:, 0]
-        target_y = target.bbox[:, 1]
+        anchor_x = (anchor.bbox[:, 0] + anchor.bbox[:, 2]) / 2
+        anchor_y = (anchor.bbox[:, 1] + anchor.bbox[:, 3]) / 2
+        target_x = (target.bbox[:, 0] + target.bbox[:, 2]) / 2
+        target_y = (target.bbox[:, 1] + target.bbox[:, 3]) / 2
 
+        apart_index_x = torch.abs(anchor_x - target_x) >= anchor_stride
+        together_index_x = torch.abs(anchor_x - target_x) < anchor_stride
+        apart_index_y = torch.abs(anchor_y - target_y) >= anchor_stride
+        together_index_y = torch.abs(anchor_y - target_y) < anchor_stride
+        
         line_index = 4 * vector_n
-        vector_4n[line_index] = (anchor_x[line_index] <= target_x[line_index])
+        vector_4n[line_index] = ((anchor_x[line_index] <= target_x[line_index]) \
+            & apart_index_x[line_index]) | together_index_x[line_index]
 
         line_index = 4 * vector_n + 1
-        vector_4n[line_index] = (anchor_x[line_index] > target_x[line_index])
+        vector_4n[line_index] = ((anchor_x[line_index] > target_x[line_index]) \
+            & apart_index_x[line_index]) | together_index_x[line_index]
 
         line_index = 4 * vector_n + 2
-        vector_4n[line_index] = (anchor_y[line_index] <= target_y[line_index])
+        vector_4n[line_index] = ((anchor_y[line_index] <= target_y[line_index]) \
+            & apart_index_y[line_index]) | together_index_y[line_index]
 
         line_index = 4 * vector_n + 3
-        vector_4n[line_index] = (anchor_y[line_index] > target_y[line_index])
+        vector_4n[line_index] = ((anchor_y[line_index] > target_y[line_index]) \
+            & apart_index_y[line_index]) | together_index_y[line_index]
         
         nopositive_index = matched_idxs < 0
         vector_4n = (nopositive_index + vector_4n).le(0)
@@ -199,7 +220,8 @@ def make_rpn_loss_evaluator(cfg, box_coder):
         matcher,
         fg_bg_sampler,
         box_coder,
-        generate_rpn_labels
+        generate_rpn_labels,
+        cfg
     )
     return loss_evaluator
 
