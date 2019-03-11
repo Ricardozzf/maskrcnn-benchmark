@@ -72,13 +72,13 @@ class RPNLossComputation(object):
     # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
     def set_anchor_direction(self, target, anchor, matched_idxs):
         import pdb; pdb.set_trace()
-        levels = self.map_levels([anchor])
-        anchor_stride = self.feat_stride[levels]
-
-        
         device = anchor.bbox.device
         n = anchor.bbox.shape[0] // 4
-        
+
+        levels = self.map_levels([anchor])
+        anchor_stride = self.feat_stride[levels]
+        anchor_stride = anchor_stride.type(torch.float32).to(device)
+
         vector_n = [i for i in range(n)]
         vector_n = torch.tensor(vector_n)
         vector_4n = torch.zeros(4*n).type(torch.uint8)
@@ -120,12 +120,12 @@ class RPNLossComputation(object):
     def prepare_targets(self, anchors, targets):
         labels = []
         regression_targets = []
-        #import pdb; pdb.set_trace()
+        
         for anchors_per_image, targets_per_image in zip(anchors, targets):
             matched_targets = self.match_targets_to_anchors(
                 anchors_per_image, targets_per_image, self.copied_fields
             )
-            #import pdb; pdb.set_trace()
+            
             matched_idxs = matched_targets.get_field("matched_idxs")
             matched_idxs = self.set_anchor_direction(matched_targets, anchors_per_image, matched_idxs)
             labels_per_image = self.generate_labels_func(matched_targets)
