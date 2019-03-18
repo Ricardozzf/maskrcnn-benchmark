@@ -73,7 +73,7 @@ class RPNLossComputation(object):
     def set_anchor_direction(self, target, anchor, matched_idxs):
         device = anchor.bbox.device
         n = anchor.bbox.shape[0] // 12
-        import pdb; pdb.set_trace()
+        
         levels = self.map_levels([anchor])
         anchor_stride = self.feat_stride[levels]
         anchor_stride = anchor_stride.type(torch.float32).to(device)
