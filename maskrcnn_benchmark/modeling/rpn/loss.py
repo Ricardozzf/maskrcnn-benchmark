@@ -72,15 +72,18 @@ class RPNLossComputation(object):
     # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
     def set_anchor_direction(self, target, anchor, matched_idxs):
         device = anchor.bbox.device
-        n = anchor.bbox.shape[0] // 4
-
+        n = anchor.bbox.shape[0] // 12
+        import pdb; pdb.set_trace()
         levels = self.map_levels([anchor])
         anchor_stride = self.feat_stride[levels]
         anchor_stride = anchor_stride.type(torch.float32).to(device)
 
         vector_n = [i for i in range(n)]
         vector_n = torch.tensor(vector_n)
-        vector_4n = torch.zeros(4*n).type(torch.uint8)
+        vector_n = vector_n.view(-1, 1).repeat(1, 3).view(-1, 1)
+        index_shift = torch.tensor([i for _ in range(n) for i in range(3)])[:, None]
+        
+        vector_4n = torch.zeros(12*n).type(torch.uint8)
         vector_4n = vector_4n.to(device)
 
         anchor_x = (anchor.bbox[:, 0] + anchor.bbox[:, 2]) / 2
@@ -93,21 +96,21 @@ class RPNLossComputation(object):
         apart_index_y = torch.abs(anchor_y - target_y) >= anchor_stride
         together_index_y = torch.abs(anchor_y - target_y) < anchor_stride
         
-        line_index = 4 * vector_n
-        vector_4n[line_index] = ((anchor_x[line_index] <= target_x[line_index]) \
-            & apart_index_x[line_index]) | together_index_x[line_index]
+        line_index = 12 * vector_n + index_shift
+        vector_4n[line_index] = (anchor_x[line_index] <= target_x[line_index]) #\
+            #& apart_index_x[line_index]) | together_index_x[line_index]
 
-        line_index = 4 * vector_n + 1
-        vector_4n[line_index] = ((anchor_x[line_index] > target_x[line_index]) \
-            & apart_index_x[line_index]) | together_index_x[line_index]
+        line_index = 12 * vector_n + index_shift + 3
+        vector_4n[line_index] = (anchor_x[line_index] > target_x[line_index]) #\
+            #& apart_index_x[line_index]) | together_index_x[line_index]
 
-        line_index = 4 * vector_n + 2
-        vector_4n[line_index] = ((anchor_y[line_index] <= target_y[line_index]) \
-            & apart_index_y[line_index]) | together_index_y[line_index]
+        line_index = 12 * vector_n + index_shift + 6
+        vector_4n[line_index] = (anchor_y[line_index] <= target_y[line_index]) #\
+            #& apart_index_y[line_index]) | together_index_y[line_index]
 
-        line_index = 4 * vector_n + 3
-        vector_4n[line_index] = ((anchor_y[line_index] > target_y[line_index]) \
-            & apart_index_y[line_index]) | together_index_y[line_index]
+        line_index = 12 * vector_n + index_shift + 9
+        vector_4n[line_index] = (anchor_y[line_index] > target_y[line_index]) #\
+            #& apart_index_y[line_index]) | together_index_y[line_index]
         
         nopositive_index = matched_idxs < 0
         vector_4n = (nopositive_index + vector_4n).le(0)
