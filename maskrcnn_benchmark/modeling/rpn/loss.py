@@ -71,7 +71,6 @@ class RPNLossComputation(object):
     # set anchor rows 4n, and row:4n means anchor locates targets left, 
     # row:4n+1 means right, row:4n+2 means top, row:4n+3 means bottom
     def set_anchor_direction(self, target, anchor, matched_idxs):
-        import pdb; pdb.set_trace()
         device = anchor.bbox.device
         n = anchor.bbox.shape[0] // 4
 
