@@ -107,7 +107,7 @@ def weighted_mse_loss(input, target, weights):
     #loss = out.mean() # or sum over whatever dimensions
     
     Lsa = smooth_l1(input, target, 1).mean()
-    Lsc = 1 - (input * target).sum() / ((input **2).sum() + (target **2).sum())
+    Lsc = 1 - (input * target).sum() / torch.sqrt((input **2).sum() + (target **2).sum())
     #import pdb; pdb.set_trace()
     #loss = smoothLoss * weights
     #loss = smoothLoss.mean()

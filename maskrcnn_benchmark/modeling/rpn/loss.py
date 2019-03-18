@@ -632,9 +632,6 @@ class RPNInstanceLossComputation(object):
         )
         '''
         #mask_loss = F.smooth_l1_loss(mask_logits[0], gaussian_mask)
-        
-        
-        #import pdb; pdb.set_trace()
         mask_loss = weighted_mse_loss(mask_logits[0], gaussian_mask, mseloss_weights)
         return mask_loss
 
