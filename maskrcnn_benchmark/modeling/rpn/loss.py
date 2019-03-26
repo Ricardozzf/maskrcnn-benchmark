@@ -55,7 +55,7 @@ class RPNLossComputation(object):
         self.map_levels = LevelMapper(lvl_min, lvl_max)
 
     def match_targets_to_anchors(self, anchor, target, copied_fields=[]):
-        match_quality_matrix = boxlist_iou(target, anchor)
+        match_quality_matrix = boxlist_iou(target, anchor,True)
         matched_idxs = self.proposal_matcher(match_quality_matrix)
         # RPN doesn't need any fields from target
         # for creating the labels, so clear them all
@@ -129,7 +129,7 @@ class RPNLossComputation(object):
             )
             
             matched_idxs = matched_targets.get_field("matched_idxs")
-            matched_idxs = self.set_anchor_direction(matched_targets, anchors_per_image, matched_idxs)
+            #matched_idxs = self.set_anchor_direction(matched_targets, anchors_per_image, matched_idxs)
             labels_per_image = self.generate_labels_func(matched_targets)
             labels_per_image = labels_per_image.to(dtype=torch.float32)
 

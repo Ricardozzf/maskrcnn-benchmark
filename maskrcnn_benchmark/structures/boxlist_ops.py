@@ -50,7 +50,7 @@ def remove_small_boxes(boxlist, min_size):
 
 # implementation from https://github.com/kuangliu/torchcv/blob/master/torchcv/utils/box.py
 # with slight modifications
-def boxlist_iou(boxlist1, boxlist2):
+def boxlist_iou(boxlist1, boxlist2, use_direction=False):
     """Compute the intersection over union of two set of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
@@ -85,6 +85,31 @@ def boxlist_iou(boxlist1, boxlist2):
     inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
 
     iou = inter / (area1[:, None] + area2 - inter)
+    if use_direction:
+        box1_cx, box2_cx = boxlist1.convert("xywh").bbox, boxlist2.convert("xywh").bbox
+        lx = torch.lt(box1_cx[:, None, 0], box2_cx[:, 0])
+        ly = torch.lt(box1_cx[:, None, 1], box2_cx[:, 1])
+        gx = ~lx
+        gy = ~ly
+
+        n = box2_cx.shape[0] // 12
+        vector_n = [i for i in range(n)]
+        vector_n = torch.tensor(vector_n)
+        vector_n = vector_n.view(-1, 1).repeat(1, 3).view(-1, 1)
+        index_shift = torch.tensor([i for _ in range(n) for i in range(3)])[:, None]
+
+        line_index = 12 * vector_n + index_shift
+        iou[:, line_index] = iou[:, line_index] * (lx & gy)[:, line_index].type(torch.cuda.FloatTensor)
+
+        line_index = 12 * vector_n + index_shift + 3
+        iou[:, line_index] = iou[:, line_index] * (gx & gy)[:, line_index].type(torch.cuda.FloatTensor)
+        
+        line_index = 12 * vector_n + index_shift + 6
+        iou[:, line_index] = iou[:, line_index] * (gx & ly)[:, line_index].type(torch.cuda.FloatTensor)
+
+        line_index = 12 * vector_n + index_shift + 9
+        iou[:, line_index] = iou[:, line_index] * (lx & ly)[:, line_index].type(torch.cuda.FloatTensor)
+    
     return iou
 
 
