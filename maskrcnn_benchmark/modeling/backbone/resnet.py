@@ -27,6 +27,7 @@ from maskrcnn_benchmark.layers import Conv2d
 from maskrcnn_benchmark.modeling.make_layers import group_norm
 from maskrcnn_benchmark.utils.registry import Registry
 
+from maskrcnn_benchmark.structures.kernel_direction_op import kernel_direction
 
 # ResNet stage specification
 StageSpec = namedtuple(
@@ -282,6 +283,15 @@ class Bottleneck(nn.Module):
             groups=num_groups,
             dilation=dilation
         )
+        self.convKer = Conv2d(
+            bottleneck_channels,
+            bottleneck_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False,
+            groups=num_groups,
+        )
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
@@ -289,7 +299,7 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv2, self.conv3,]:
+        for l in [self.conv1, self.conv2, self.conv3, self.convKer]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
@@ -298,11 +308,14 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = F.relu_(out)
+        import pdb; pdb.set_trace()
+        self.conv2.weight.data = self.convKer(self.conv2.weight.data) + self.conv2.weight.data
 
         out = self.conv2(out)
         out = self.bn2(out)
         out = F.relu_(out)
 
+        #out = kernel_direction(out, self.conv2.weight)
         out0 = self.conv3(out)
         out = self.bn3(out0)
 
