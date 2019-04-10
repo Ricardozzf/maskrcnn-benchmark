@@ -265,17 +265,17 @@ class Bottleneck(nn.Module):
 
         self.conv1 = Conv2d(
             in_channels,
-            bottleneck_channels,
+            bottleneck_channels // 4,
             kernel_size=1,
             stride=stride_1x1,
             bias=False,
         )
-        self.bn1 = norm_func(bottleneck_channels)
+        self.bn1 = norm_func(bottleneck_channels//4)
         # TODO: specify init for the above
 
         self.conv2 = Conv2d(
-            bottleneck_channels,
-            bottleneck_channels,
+            bottleneck_channels//4,
+            bottleneck_channels//4,
             kernel_size=3,
             stride=stride_3x3,
             padding=dilation,
@@ -283,15 +283,53 @@ class Bottleneck(nn.Module):
             groups=num_groups,
             dilation=dilation
         )
-        self.convKer = Conv2d(
-            bottleneck_channels,
-            bottleneck_channels,
+
+        self.conv2_1 = Conv2d(
+            bottleneck_channels//4,
+            bottleneck_channels//4,
             kernel_size=3,
-            stride=1,
-            padding=1,
+            stride=stride_3x3,
+            padding=dilation,
             bias=False,
             groups=num_groups,
+            dilation=dilation
         )
+
+        self.conv2_2 = Conv2d(
+            bottleneck_channels//4,
+            bottleneck_channels//4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
+        self.conv2_3 = Conv2d(
+            bottleneck_channels//4,
+            bottleneck_channels//4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
+        self.conv2_4 = Conv2d(
+            bottleneck_channels//4,
+            bottleneck_channels//4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
+        self.conv_list = [self.conv2_1, self.conv2_2, self.conv2_3, self.conv2_4]
+
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
@@ -299,7 +337,7 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv2, self.conv3, self.convKer]:
+        for l in [self.conv1, self.conv2, self.conv3]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
@@ -308,14 +346,21 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = F.relu_(out)
-        import pdb; pdb.set_trace()
-        self.conv2.weight.data = self.convKer(self.conv2.weight.data) + self.conv2.weight.data
+        #import pdb; pdb.set_trace()
+        kernel_direction(self.conv2.weight.data, self.conv_list)
 
-        out = self.conv2(out)
+        out1 = self.conv2_1(out)
+        out2 = self.conv2_2(out)
+        out3 = self.conv2_3(out)
+        out4 = self.conv2_4(out)
+
+        out = torch.cat((out1,out2,out3,out4),dim=1)
+
+        #out = self.conv2(out)
         out = self.bn2(out)
         out = F.relu_(out)
 
-        #out = kernel_direction(out, self.conv2.weight)
+        
         out0 = self.conv3(out)
         out = self.bn3(out0)
 
