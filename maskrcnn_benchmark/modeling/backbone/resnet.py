@@ -269,6 +269,7 @@ class Bottleneck(nn.Module):
             kernel_size=1,
             stride=stride_1x1,
             bias=False,
+            groups=4
         )
         self.bn1 = norm_func(bottleneck_channels//4)
         # TODO: specify init for the above
@@ -333,7 +334,7 @@ class Bottleneck(nn.Module):
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
-            bottleneck_channels, out_channels, kernel_size=1, bias=False
+            bottleneck_channels, out_channels, kernel_size=1, bias=False,groups=4
         )
         self.bn3 = norm_func(out_channels)
 
