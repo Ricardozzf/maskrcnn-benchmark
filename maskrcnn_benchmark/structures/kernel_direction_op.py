@@ -22,10 +22,17 @@ def kernel_direction(conv_kernel, conv_list,group=4):
     Center_matrix = Center_matrix.to(conv_kernel.device)
 
     #import pdb; pdb.set_trace()
-    conv_list[0].weight.data = (conv_kernel * xPos_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1) * conv_kernel
-    conv_list[1].weight.data = (conv_kernel * xNeg_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1) * conv_kernel
-    conv_list[2].weight.data = (conv_kernel * yPos_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1) * conv_kernel
-    conv_list[3].weight.data = (conv_kernel * yNeg_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1) * conv_kernel
+    xPos_tensor = (conv_kernel * xPos_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1)
+    xNeg_tensor = (conv_kernel * xNeg_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1)
+    yPos_tensor = (conv_kernel * yPos_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1)
+    yNeg_tensor = (conv_kernel * yNeg_matrix).sum((2,3)).view(kernel_num, kernel_channel, 1, 1)
+
+    kernel_sum = conv_kernel.sum((2,3)).view(kernel_num, kernel_channel, 1, 1)
+
+    conv_list[0].weight.data = xPos_tensor / kernel_sum * conv_kernel
+    conv_list[1].weight.data = xNeg_tensor / kernel_sum * conv_kernel
+    conv_list[2].weight.data = yPos_tensor / kernel_sum * conv_kernel
+    conv_list[3].weight.data = yNeg_tensor / kernel_sum * conv_kernel
 
     '''
     kernel_center_xPos = (conv_kernel[:, :channel_stride, :, :] * Center_matrix).sum((2,3)).view(kernel_num, channel_stride, 1, 1) / 4

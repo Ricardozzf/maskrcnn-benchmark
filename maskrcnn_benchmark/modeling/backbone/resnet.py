@@ -347,7 +347,7 @@ class Bottleneck(nn.Module):
         out = self.conv1(x)
         out = self.bn1(out)
         out = F.relu_(out)
-        #import pdb; pdb.set_trace()
+        
         kernel_direction(self.conv2.weight.data, self.conv_list)
 
         out1 = self.conv2_1(out)
