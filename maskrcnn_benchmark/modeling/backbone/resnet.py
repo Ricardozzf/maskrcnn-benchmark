@@ -272,6 +272,7 @@ class Bottleneck(nn.Module):
         self.bn1 = norm_func(bottleneck_channels)
         # TODO: specify init for the above
 
+        '''
         self.conv2 = Conv2d(
             bottleneck_channels,
             bottleneck_channels,
@@ -282,6 +283,40 @@ class Bottleneck(nn.Module):
             groups=num_groups,
             dilation=dilation
         )
+        '''
+        self.conv2_1 = Conv2d(
+            bottleneck_channels // 4,
+            bottleneck_channels // 4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
+        self.conv2_2 = Conv2d(
+            bottleneck_channels // 4,
+            bottleneck_channels // 4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
+        self.conv2_3 = Conv2d(
+            bottleneck_channels // 4,
+            bottleneck_channels // 4,
+            kernel_size=3,
+            stride=stride_3x3,
+            padding=dilation,
+            bias=False,
+            groups=num_groups,
+            dilation=dilation
+        )
+
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
@@ -289,7 +324,14 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv2, self.conv3,]:
+        self.globalAvgPool = nn.AdaptiveAvgPool2d((1,1))
+        self.fc1 = nn.Linear(in_features=out_channels, out_features=round(out_channels / 16))
+        self.fc2 = nn.Linear(in_features=round(out_channels / 16), out_features=out_channels)
+        self.sigmoid = nn.Sigmoid()
+
+
+
+        for l in [self.conv1, self.conv2_1, self.conv2_2, self.conv2_3, self.conv3,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
@@ -299,7 +341,17 @@ class Bottleneck(nn.Module):
         out = self.bn1(out)
         out = F.relu_(out)
 
-        out = self.conv2(out)
+        n_channel = out.shape[1] // 4
+        out1 = out[:, :n_channel, :, :]
+        out2 = out[:, n_channel:2*n_channel, :, :]
+        out3 = out[:, 2*n_channel:3*n_channel, :, :]
+        out4 = out[:, 3*n_channel:, :, :]
+
+        out2 = self.conv2_1(out2)
+        out3 = self.conv2_2(out2 + out3)
+        out4 = self.conv2_3(out3 + out4)
+
+        out = torch.cat([out1, out2, out3, out4],dim=1)
         out = self.bn2(out)
         out = F.relu_(out)
 
@@ -308,6 +360,17 @@ class Bottleneck(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
+
+        original_out = out
+
+        out = self.globalAvgPool(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = F.relu_(out)
+        out = self.fc2(out)
+        out = self.sigmoid(out)
+        out = out.view(out.size(0),out.size(1),1,1)
+        out = out * original_out
 
         out += identity
         out = F.relu_(out)
