@@ -284,17 +284,33 @@ class Bottleneck(nn.Module):
         )
         self.bn2 = norm_func(bottleneck_channels)
 
+        self.conv_w = Conv2d(
+            800 * 64 // out_channels,
+            bottleneck_channels,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
+        self.conv_h = Conv2d(
+            800 * 64 // out_channels,
+            bottleneck_channels,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
         self.conv3 = Conv2d(
             bottleneck_channels, out_channels, kernel_size=1, bias=False
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv2, self.conv3,]:
+        for l in [self.conv1, self.conv2, self.conv3, self.conv_w, self.conv_h,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
         identity = x
-
+        
         out = self.conv1(x)
         out = self.bn1(out)
         out = F.relu_(out)
@@ -302,7 +318,16 @@ class Bottleneck(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
         out = F.relu_(out)
-
+        
+        out_w = self.conv_w(out.permute(0,3,2,1))
+        out_w = out_w.mean(dim=3, keepdim=True)
+        
+        out_h = self.conv_h(out.permute(0,2,1,3))
+        out_h = out_h.mean(dim=2, keepdim=True)
+        
+        out = out * out_h + out * out_w
+        out = F.relu_(out)
+        
         out0 = self.conv3(out)
         out = self.bn3(out0)
 
