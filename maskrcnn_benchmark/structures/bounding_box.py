@@ -126,6 +126,23 @@ class BoxList(object):
 
         return bbox.convert(self.mode)
 
+
+    def pad(self, padding, size):
+        xmin, ymin, xmax, ymax = self._split_into_xyxy()
+        translation_xmin = xmin + padding[0]
+        translation_xmax = xmax + padding[0]
+        translation_ymin = ymin + padding[2]
+        translation_ymax = ymax + padding[2]
+        translation_box = torch.cat(
+            (translation_xmin, translation_ymin, translation_xmax, translation_ymax), dim=-1
+        )
+        bbox = BoxList(translation_box, size, mode="xyxy")
+        for k, v in self.extra_fields.items():
+            if not isinstance(v, torch.Tensor):
+                v = v.pad(padding, size)
+            bbox.add_field(k, v)
+        return  bbox.convert(self.mode)
+
     def transpose(self, method):
         """
         Transpose bounding box (flip or rotate in 90 degree steps)

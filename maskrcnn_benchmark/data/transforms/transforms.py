@@ -33,7 +33,6 @@ class Resize(object):
 
     # modified from torchvision to add support for max size
     def get_size(self, image_size):
-        '''
         w, h = image_size
         size = random.choice(self.min_size)
         max_size = self.max_size
@@ -54,15 +53,33 @@ class Resize(object):
             ow = int(size * w / h)
 
         return (oh, ow)
-        '''
-        return (self.max_size, self.max_size)
 
     def __call__(self, image, target):
         size = self.get_size(image.size)
         image = F.resize(image, size)
         target = target.resize(image.size)
+
+        image, padding = self.pad(image, size)
+        target = target.pad(padding, image.size)
+
+        import cv2,numpy
+        im_tmp = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
+        bbox = target.bbox[0]
+        im_tmp = cv2.rectangle(im_tmp,(bbox[0],bbox[1]),(bbox[2], bbox[3]),(255,0,0),2)
+        cv2.imshow("res",im_tmp)
+        cv2.waitKey(0)
+
         return image, target
 
+    def pad(self, image, size):
+        
+        l_pad = (self.max_size - size[1]) // 2
+        r_pad = (self.max_size - size[1] + 1) // 2
+        t_pad = (self.max_size - size[0]) // 2
+        b_pad = (self.max_size - size[0] + 1) // 2
+
+        image = F.pad(image, (l_pad, t_pad, r_pad, b_pad))
+        return image , (l_pad, r_pad, t_pad, b_pad)
 
 class RandomHorizontalFlip(object):
     def __init__(self, prob=0.5):
