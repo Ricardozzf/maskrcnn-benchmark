@@ -62,13 +62,14 @@ class Resize(object):
         image, padding = self.pad(image, size)
         target = target.pad(padding, image.size)
 
+        '''
         import cv2,numpy
         im_tmp = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
         bbox = target.bbox[0]
         im_tmp = cv2.rectangle(im_tmp,(bbox[0],bbox[1]),(bbox[2], bbox[3]),(255,0,0),2)
         cv2.imshow("res",im_tmp)
         cv2.waitKey(0)
-
+        '''
         return image, target
 
     def pad(self, image, size):

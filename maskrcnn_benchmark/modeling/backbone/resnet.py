@@ -285,7 +285,7 @@ class Bottleneck(nn.Module):
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv_w = Conv2d(
-            800 * 64 // out_channels,
+            1000 * 64 // out_channels,
             bottleneck_channels,
             kernel_size=1,
             stride=1,
@@ -293,7 +293,7 @@ class Bottleneck(nn.Module):
         )
 
         self.conv_h = Conv2d(
-            800 * 64 // out_channels,
+            1000 * 64 // out_channels,
             bottleneck_channels,
             kernel_size=1,
             stride=1,
