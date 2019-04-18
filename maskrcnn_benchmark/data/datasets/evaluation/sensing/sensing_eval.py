@@ -8,6 +8,29 @@ import numpy as np
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
+IM_MAXSIZE = 1024
+import random
+def get_size(image_size):
+        w, h = image_size
+        size = random.choice(self.min_size)
+        max_size = IM_MAXSIZE
+        if max_size is not None:
+            min_original_size = float(min((w, h)))
+            max_original_size = float(max((w, h)))
+            if max_original_size / min_original_size * size > max_size:
+                size = int(round(max_size * min_original_size / max_original_size))
+
+        if (w <= h and w == size) or (h <= w and h == size):
+            return (h, w)
+
+        if w < h:
+            ow = size
+            oh = int(size * h / w)
+        else:
+            oh = size
+            ow = int(size * w / h)
+
+        return (oh, ow)
 
 def do_sensing_evaluation(dataset, predictions, output_folder, logger):
     # TODO need to make the use_07_metric format available
@@ -20,6 +43,13 @@ def do_sensing_evaluation(dataset, predictions, output_folder, logger):
             continue
         image_width = img_info["width"]
         image_height = img_info["height"]
+        oh, ow = get_size((image_width, image_height))
+        l_pad = (IM_MAXSIZE - image_width) // 2
+        r_pad = (IM_MAXSIZE - image_width + 1) // 2
+        t_pad = (IM_MAXSIZE - image_height) // 2
+        b_pad = (IM_MAXSIZE - image_height + 1) // 2
+        box = (l_pad,t_pad, ow+l_pad, oh+t_pad)
+        prediction = prediction.crop(box)
         prediction = prediction.resize((image_width, image_height))
         pred_boxlists.append(prediction)
 

@@ -65,9 +65,11 @@ class Resize(object):
         '''
         import cv2,numpy
         im_tmp = cv2.cvtColor(numpy.array(image), cv2.COLOR_RGB2BGR)
-        bbox = target.bbox[0]
-        im_tmp = cv2.rectangle(im_tmp,(bbox[0],bbox[1]),(bbox[2], bbox[3]),(255,0,0),2)
+        for i in range(target.bbox.shape[0]):
+            bbox = target.bbox[i]
+            im_tmp = cv2.rectangle(im_tmp,(bbox[0],bbox[1]),(bbox[2], bbox[3]),(255,0,0),2)
         cv2.imshow("res",im_tmp)
+        print(image.size)
         cv2.waitKey(0)
         '''
         return image, target
