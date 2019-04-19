@@ -285,20 +285,53 @@ class Bottleneck(nn.Module):
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv_w = Conv2d(
-            1000 * 64 // out_channels,
-            bottleneck_channels,
+            1024 * 64 // out_channels,
+            1024 * 64 // out_channels,
             kernel_size=1,
             stride=1,
             bias=False,
         )
 
         self.conv_h = Conv2d(
-            1000 * 64 // out_channels,
-            bottleneck_channels,
+            1024 * 64 // out_channels,
+            1024 * 64 // out_channels,
             kernel_size=1,
             stride=1,
             bias=False,
         )
+
+        self.conv_w_1 = Conv2d(
+            1024 * 64 // out_channels,
+            out_channels,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
+        self.conv_h_1 = Conv2d(
+            1024 * 64 // out_channels,
+            out_channels,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
+        self.conv_h_c = Conv2d(
+            out_channels,
+            1,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
+        self.conv_w_c = Conv2d(
+            out_channels,
+            1,
+            kernel_size=1,
+            stride=1,
+            bias=False,
+        )
+
 
         self.conv3 = Conv2d(
             bottleneck_channels, out_channels, kernel_size=1, bias=False
@@ -319,17 +352,19 @@ class Bottleneck(nn.Module):
         out = self.bn2(out)
         out = F.relu_(out)
         
-        out_w = self.conv_w(out.permute(0,3,2,1))
-        out_w = out_w.mean(dim=3, keepdim=True)
-        
-        out_h = self.conv_h(out.permute(0,2,1,3))
-        out_h = out_h.mean(dim=2, keepdim=True)
-        
-        out = out * out_h + out * out_w
-        out = F.relu_(out)
-        
         out0 = self.conv3(out)
         out = self.bn3(out0)
+        
+        out_w = self.conv_w(out.permute(0,3,2,1))
+        out_w = self.conv_w_1(out_w).permute(0,3,2,1)
+        out_w = self.conv_w_c(out_w).permute(0,3,2,1)
+        
+        out_h = self.conv_h(out.permute(0,2,1,3))
+        out_h = self.conv_h_1(out_h).permute(0,2,1,3)
+        out_h = self.conv_h_c(out_h).permute(0,2,1,3)
+        
+        out = out * out_h * out_w
+        out = F.relu_(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)

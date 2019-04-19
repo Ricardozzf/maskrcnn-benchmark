@@ -9,10 +9,11 @@ from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
 IM_MAXSIZE = 1024
+IM_MINSIZE = (600,)
 import random
 def get_size(image_size):
         w, h = image_size
-        size = random.choice(self.min_size)
+        size = random.choice(IM_MINSIZE)
         max_size = IM_MAXSIZE
         if max_size is not None:
             min_original_size = float(min((w, h)))
@@ -44,10 +45,10 @@ def do_sensing_evaluation(dataset, predictions, output_folder, logger):
         image_width = img_info["width"]
         image_height = img_info["height"]
         oh, ow = get_size((image_width, image_height))
-        l_pad = (IM_MAXSIZE - image_width) // 2
-        r_pad = (IM_MAXSIZE - image_width + 1) // 2
-        t_pad = (IM_MAXSIZE - image_height) // 2
-        b_pad = (IM_MAXSIZE - image_height + 1) // 2
+        l_pad = (IM_MAXSIZE - ow) // 2
+        r_pad = (IM_MAXSIZE - ow + 1) // 2
+        t_pad = (IM_MAXSIZE - oh) // 2
+        b_pad = (IM_MAXSIZE - oh + 1) // 2
         box = (l_pad,t_pad, ow+l_pad, oh+t_pad)
         prediction = prediction.crop(box)
         prediction = prediction.resize((image_width, image_height))
