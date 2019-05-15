@@ -343,17 +343,17 @@ class Bottleneck(nn.Module):
         out_w = self.conv_w_c(out_w).permute(0,3,2,1)
         out_w = F.relu_(out_w)
         
-        out_h = self.conv_h(out.permute(0,2,1,3)).permute(0,3,2,1)
+        out_h = self.conv_h(out.permute(0,2,1,3)).permute(0,2,1,3)
         out_h = self.conv_h_c(out_h).permute(0,2,1,3)
         out_h = F.relu_(out_h)
         
-        out = out * out_h + out * out_w
+        out = out * out_h * out_w 
         out = F.relu_(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out += identity
+        out = out + identity
         out = F.relu_(out)
 
         return out
