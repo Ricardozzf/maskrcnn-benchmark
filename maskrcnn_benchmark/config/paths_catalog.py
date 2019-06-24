@@ -147,7 +147,15 @@ class DatasetCatalog(object):
         "cityscapes_fine_instanceonly_seg_test_cocostyle": {
             "img_dir": "cityscapes/images",
             "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
-        }
+        },
+        "coco_Wider_train": {
+            "img_dir": "Wider/train_data",
+            "ann_file": "Wider/Wider_train.json"
+        },
+        "coco_Wider_val": {
+            "img_dir": "Wider/val_data",
+            "ann_file": "Wider/Wider_val.json"
+        },
     }
 
     @staticmethod

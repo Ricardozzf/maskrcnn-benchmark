@@ -67,7 +67,7 @@ def boxlist_iou(boxlist1, boxlist2):
     if boxlist1.size != boxlist2.size:
         raise RuntimeError(
                 "boxlists should have same image size, got {}, {}".format(boxlist1, boxlist2))
-
+    
     N = len(boxlist1)
     M = len(boxlist2)
 
@@ -85,6 +85,12 @@ def boxlist_iou(boxlist1, boxlist2):
     inter = wh[:, :, 0] * wh[:, :, 1]  # [N,M]
 
     iou = inter / (area1[:, None] + area2 - inter)
+
+    if boxlist1.has_field("ignore"):
+        ignore = boxlist1.get_field("ignore").type(torch.uint8)
+        line_ = torch.arange(0, N)
+        iou[line_, ignore] = 0.5
+
     return iou
 
 
