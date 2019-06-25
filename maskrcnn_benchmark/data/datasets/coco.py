@@ -6,7 +6,8 @@ from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 from maskrcnn_benchmark.structures.keypoint import PersonKeypoints
 
-
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 min_keypoints_per_image = 10
 
 
@@ -73,7 +74,7 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         boxes = [obj["bbox"] for obj in anno]
         ignores = [obj["ignore"] for obj in anno]
         boxes = torch.as_tensor(boxes).reshape(-1, 4)  # guard against no boxes
-        ignores = torch.as_tensor(boxes).reshape(-1, 1)
+        ignores = torch.as_tensor(ignores).reshape(-1, 1)
         target = BoxList(boxes, img.size, mode="xywh").convert("xyxy")
         target.add_field("ignore", ignores)
 
@@ -91,7 +92,7 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
             keypoints = PersonKeypoints(keypoints, img.size)
             target.add_field("keypoints", keypoints)
 
-        target = target.clip_to_image(remove_empty=False)
+        target = target.clip_to_image(remove_empty=True)
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)

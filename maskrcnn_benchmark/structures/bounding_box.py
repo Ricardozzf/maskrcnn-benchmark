@@ -220,7 +220,9 @@ class BoxList(object):
         if remove_empty:
             box = self.bbox
             keep = (box[:, 3] > box[:, 1]) & (box[:, 2] > box[:, 0])
-            return self[keep]
+            #if "ignore" in self.extra_fields:
+            #    self.extra_fields["ignore"]=self.extra_fields["ignore"][keep]
+            #return self[keep]
         return self
 
     def area(self):
@@ -244,6 +246,13 @@ class BoxList(object):
                 bbox.add_field(field, self.get_field(field))
             elif not skip_missing:
                 raise KeyError("Field '{}' not found in {}".format(field, self))
+        if skip_missing and self.has_field("ignore"):
+            ignore = self.extra_fields["ignore"]
+            device = ignore.device
+            ignore = ignore.type(torch.uint8).to(device)
+            if len(ignore) !=0:
+                ignore = ignore.squeeze(1)
+                bbox.bbox = bbox.bbox[1-ignore,:]
         return bbox
 
     def __repr__(self):
