@@ -43,14 +43,27 @@ class AnchorGenerator(nn.Module):
         aspect_ratios=(0.5, 1.0, 2.0),
         anchor_strides=(8, 16, 32),
         straddle_thresh=0,
+        use_trident = False,
     ):
         super(AnchorGenerator, self).__init__()
 
-        if len(anchor_strides) == 1:
+        if len(anchor_strides) == 1 and not use_trident:
             anchor_stride = anchor_strides[0]
             cell_anchors = [
                 generate_anchors(anchor_stride, sizes, aspect_ratios).float()
             ]
+
+        elif len(anchor_strides) == 1 and use_trident:
+            assert len(sizes) == 5, "trident net anchors size must be 5"
+            cell_anchors = [
+                generate_anchors(
+                    anchor_strides[0],
+                    sizes[i:i+3],
+                    aspect_ratios
+                ).float() for i in range(3)
+            ]
+            anchor_strides = [anchor_strides[0]] * 3
+
         else:
             if len(anchor_strides) != len(sizes):
                 raise RuntimeError("FPN should have #anchor_strides == #sizes")
@@ -130,6 +143,7 @@ def make_anchor_generator(config):
     aspect_ratios = config.MODEL.RPN.ASPECT_RATIOS
     anchor_stride = config.MODEL.RPN.ANCHOR_STRIDE
     straddle_thresh = config.MODEL.RPN.STRADDLE_THRESH
+    use_trident = config.MODEL.RPN.USE_TRIDENT
 
     if config.MODEL.RPN.USE_FPN:
         assert len(anchor_stride) == len(
@@ -138,7 +152,7 @@ def make_anchor_generator(config):
     else:
         assert len(anchor_stride) == 1, "Non-FPN should have a single ANCHOR_STRIDE"
     anchor_generator = AnchorGenerator(
-        anchor_sizes, aspect_ratios, anchor_stride, straddle_thresh
+        anchor_sizes, aspect_ratios, anchor_stride, straddle_thresh, use_trident
     )
     return anchor_generator
 

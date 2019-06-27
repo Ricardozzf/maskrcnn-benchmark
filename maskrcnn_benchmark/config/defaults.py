@@ -173,6 +173,9 @@ _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
 # Select rpn computation loss function
 _C.MODEL.RPN.RPN_LOSS = "RPNLossComputation"
 
+# weather use Trident block
+_C.MODEL.RPN.USE_TRIDENT = False
+
 
 # ---------------------------------------------------------------------------- #
 # ROI HEADS options

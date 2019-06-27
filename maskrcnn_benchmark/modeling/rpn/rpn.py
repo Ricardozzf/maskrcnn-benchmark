@@ -105,8 +105,8 @@ class RPNHead(nn.Module):
             bbox_reg.append(self.bbox_pred(t))
         return logits, bbox_reg
 
-@registry.RPN_HEADS.register("SingleConvRPNIoUHead")
-class RPNIoUHead(nn.Module):
+@registry.RPN_HEADS.register("ConvRPNTridentHead")
+class RPNTridentHead(nn.Module):
     """
     Adds a simple RPN Head with classification and regression heads
     """
@@ -118,42 +118,38 @@ class RPNIoUHead(nn.Module):
             in_channels (int): number of channels of the input feature
             num_anchors (int): number of anchors to be predicted
         """
-        super(RPNIoUHead, self).__init__()
-        self.conv = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, stride=1, padding=1
-        )
-        self.iou_conv1_1 = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, stride=1, padding=1
-        )
-
-        self.iou_conv1_2 = nn.Conv2d(
-            in_channels, 2* in_channels, kernel_size=1, stride=1, padding=0
-        )
+        super(RPNTridentHead, self).__init__()
+        self.num_block = 5
+        self.tridentBlock = {}
+        for i in range(1,self.num_block+1):  
+            self.tridentBlock["trident"+str(i)+"_1"] = nn.Parameter(torch.empty(2*in_channels, in_channels, 1, 1))
+            self.tridentBlock["trident"+str(i)+"_2"] = nn.Parameter(torch.empty(2*in_channels, 2*in_channels, 3, 3))
+            self.tridentBlock["trident"+str(i)+"_3"] = nn.Parameter(torch.empty(in_channels, 2*in_channels, 1, 1))
         
-        self.iou_conv1_3 = nn.Conv2d(
-            2 * in_channels, in_channels, kernel_size=3, stride=1, padding=1
-        )
-
         self.cls_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1)
         self.bbox_pred = nn.Conv2d(
             in_channels, num_anchors * 4, kernel_size=1, stride=1
         )
 
-        for l in [self.conv, self.cls_logits, self.bbox_pred]:
-            torch.nn.init.normal_(l.weight, std=0.01)
-            torch.nn.init.constant_(l.bias, 0)
+        for key in self.tridentBlock.keys():
+            torch.nn.init.normal_(self.tridentBlock[key], std=0.01)
+
 
     def forward(self, x):
         logits = []
         bbox_reg = []
-        for feature in x:
-            t = F.relu(self.conv(feature))
-            bbox_reg.append(self.bbox_pred(t))
-            for i in range(3):
-                t = F.relu(self.iou_conv1_1(t))
-                t = F.relu(self.iou_conv1_2(t))
-                t = F.relu(self.iou_conv1_3(t))
+        assert len(x)==1, 'trident net don`t surpport FPN'
+        x = x * 3
+        dilates = [1,2,3]
+        for t, dilate in zip(x, dilates):
+            for i in range(1,self.num_block+1):
+                name = "trident"+str(i)
+                t = nn.functional.conv2d(t, self.tridentBlock[name+"_1"], bias=None, stride=1, padding=0)
+                t = F.relu(nn.functional.conv2d(t, self.tridentBlock[name+"_2"], bias=None, stride=1, padding=1, dilation=dilate))
+                t = nn.functional.conv2d(t, self.tridentBlock[name+"_3"], bias=None, stride=1, padding=0)
+
             logits.append(self.cls_logits(t))
+            bbox_reg.append(self.bbox_pred(t))
 
         return logits, bbox_reg
 
