@@ -122,9 +122,9 @@ class RPNTridentHead(nn.Module):
         self.num_block = 5
         self.tridentBlock = {}
         for i in range(1,self.num_block+1):  
-            self.tridentBlock["trident"+str(i)+"_1"] = nn.Parameter(torch.empty(2*in_channels, in_channels, 1, 1))
-            self.tridentBlock["trident"+str(i)+"_2"] = nn.Parameter(torch.empty(2*in_channels, 2*in_channels, 3, 3))
-            self.tridentBlock["trident"+str(i)+"_3"] = nn.Parameter(torch.empty(in_channels, 2*in_channels, 1, 1))
+            self.tridentBlock["trident"+str(i)+"_1"] = nn.Parameter(torch.empty(in_channels // 2, in_channels, 1, 1))
+            self.tridentBlock["trident"+str(i)+"_2"] = nn.Parameter(torch.empty(in_channels // 2, in_channels // 2, 3, 3))
+            self.tridentBlock["trident"+str(i)+"_3"] = nn.Parameter(torch.empty(in_channels, in_channels // 2, 1, 1))
         
         self.cls_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1)
         self.bbox_pred = nn.Conv2d(
