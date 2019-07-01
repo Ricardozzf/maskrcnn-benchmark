@@ -120,7 +120,7 @@ class RPNTridentHead(nn.Module):
         """
         super(RPNTridentHead, self).__init__()
         self.num_block = 5
-        self.tridentBlock = {}
+        self.tridentBlock = nn.ParameterDict({})
         for i in range(1,self.num_block+1):  
             self.tridentBlock["trident"+str(i)+"_1"] = nn.Parameter(torch.empty(in_channels // 2, in_channels, 1, 1))
             self.tridentBlock["trident"+str(i)+"_2"] = nn.Parameter(torch.empty(in_channels // 2, in_channels // 2, 3, 3))
