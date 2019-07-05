@@ -119,3 +119,48 @@ class Normalize(object):
         if target is None:
             return image
         return image, target
+
+class RandomCrop(object):
+
+    @staticmethod
+    def get_params(img, output_size, t):
+        """Get parameters for ``crop`` for a random crop.
+        Args:
+            img (PIL Image): Image to be cropped.
+            output_size (tuple): Expected output size of the crop.
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        w, h = img.size
+        #th, tw = output_size
+        xmin, ymin, xmax, ymax = t
+        if w - xmin < output_size:
+            i = w - output_size   
+            j = 0
+            th = output_size
+            tw = output_size
+
+            return i, j, th, tw
+        else :
+            i = random.randint(xmin // 2, xmin)
+            j = 0
+            th = output_size
+            tw = output_size
+
+            return i, j, th, tw
+
+    def __call__(self, image, target):
+        bbox = []
+        if target.mode != "xyxy":
+            bbox = target.convert("xyxy")
+        xmin = torch.min(bbox[0])
+        ymin = torch.min(bbox[1])
+        xmax = torch.max(bbox[2])
+        ymax = torch.max(bbox[3])
+
+        o_w, o_h = image.size
+
+        i, j, h, w = self.get_params(image, o_h, (xmin, ymin, xmax, ymax))
+        image = F.crop(image, i, j ,h, w)
+        target = target.crop(i, j, h, w)
+        return image, target
