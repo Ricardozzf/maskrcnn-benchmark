@@ -54,11 +54,11 @@ class AnchorGenerator(nn.Module):
             ]
 
         elif len(anchor_strides) == 1 and use_trident:
-            assert len(sizes) == 5, "trident net anchors size must be 5"
+            assert len(sizes) == 6, "trident net anchors size must be 6"
             cell_anchors = [
                 generate_anchors(
                     anchor_strides[0],
-                    sizes[i:i+3],
+                    sizes[i:i+2],
                     aspect_ratios
                 ).float() for i in range(3)
             ]
