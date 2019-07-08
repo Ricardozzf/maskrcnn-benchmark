@@ -58,7 +58,7 @@ class AnchorGenerator(nn.Module):
             cell_anchors = [
                 generate_anchors(
                     anchor_strides[0],
-                    sizes[i:i+2],
+                    sizes[2*i:2*i+2],
                     aspect_ratios
                 ).float() for i in range(3)
             ]

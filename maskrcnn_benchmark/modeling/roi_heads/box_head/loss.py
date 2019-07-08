@@ -37,6 +37,8 @@ class FastRCNNLossComputation(object):
         self.cls_agnostic_bbox_reg = cls_agnostic_bbox_reg
 
     def match_targets_to_proposals(self, proposal, target):
+        if target.has_field("ignore"):
+            del target.extra_fields["ignore"]
         match_quality_matrix = boxlist_iou(target, proposal)
         matched_idxs = self.proposal_matcher(match_quality_matrix)
         # Fast RCNN only need "labels" field for selecting the targets
