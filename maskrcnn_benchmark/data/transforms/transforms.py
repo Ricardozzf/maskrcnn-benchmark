@@ -122,45 +122,53 @@ class Normalize(object):
 
 class RandomCrop(object):
 
-    @staticmethod
-    def get_params(img, output_size, t):
-        """Get parameters for ``crop`` for a random crop.
-        Args:
-            img (PIL Image): Image to be cropped.
-            output_size (tuple): Expected output size of the crop.
-        Returns:
-            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
-        """
-        w, h = img.size
-        #th, tw = output_size
-        xmin, ymin, xmax, ymax = t
-        if w - xmin < output_size:
-            i = w - output_size   
-            j = 0
-            th = output_size
-            tw = output_size
+    def __init__(self, min_scale, max_scale, iou_thresh=0.5):
+        # scale realtive to the smaller size of the image
+        self.min_scale = min_scale
+        self.max_scale = max_scale
+        self.iou_thresh = iou_thresh
 
-            return i, j, th, tw
-        else :
-            i = random.randint(xmin // 2, xmin)
-            j = 0
-            th = output_size
-            tw = output_size
+    def get_params(self, image_size):
+        w, h = image_size
+        min_s = self.min_scale
+        max_s = self.max_scale
+        # randomly sample a scale within the range
+        s = random.random() * (max_s - min_s) + min_s
+        crop_size = int(min(w, h) * s)
+        x1 = random.randint(0, w - crop_size)
+        y1 = random.randint(0, h - crop_size)
+        return x1, y1, crop_size
 
-            return i, j, th, tw
+    def get_safe_params(self, image_size, crop_size, target):
+        w, h = image_size
+        b = random.randint(0, len(target)-1) 
+        x1,y1,x2,y2 = target[[b]]._split_into_xyxy()
+        cx = int((x1 + x2) / 2)
+        cy = int((y1 + y2) / 2)
+        x1 = max(int(cx - crop_size/2), 0)
+        y1 = max(int(cy - crop_size/2), 0)
+        x2 = min(int(cx + crop_size/2), w)
+        y2 = min(int(cy + crop_size/2), h)
+        new_crop_size = min(x2-x1+1, y2-y1+1)
+        return x1, y1, new_crop_size
 
     def __call__(self, image, target):
-        bbox = []
-        if target.mode != "xyxy":
-            bbox = target.convert("xyxy")
-        xmin = torch.min(bbox[0])
-        ymin = torch.min(bbox[1])
-        xmax = torch.max(bbox[2])
-        ymax = torch.max(bbox[3])
+        image_size = image.size
+        x1, y1, crop_size = self.get_params(image_size)
 
-        o_w, o_h = image.size
+        original_target = target.copy_with_fields(list(target.extra_fields.keys()))
+        box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
+        target = target.crop(box)
+        ious = target.area() / original_target.area()
+        target = target[ious >= self.iou_thresh]
 
-        i, j, h, w = self.get_params(image, o_h, (xmin, ymin, xmax, ymax))
-        image = F.crop(image, i, j ,h, w)
-        target = target.crop(i, j, h, w)
+        if len(target) > 0:
+            image = F.crop(image, y1, x1, crop_size, crop_size)
+            return image, target
+
+        # guard against no box available after crop
+        x1, y1, crop_size = self.get_safe_params(image_size, crop_size, original_target)
+        box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
+        target = original_target.crop(box) # re-crop original target
+        image = F.crop(image, y1, x1, crop_size, crop_size)
         return image, target
