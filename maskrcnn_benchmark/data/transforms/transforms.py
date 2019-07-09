@@ -152,7 +152,7 @@ class RandomCrop(object):
         
         x1 = random.randint(max(int(xmax - crop_size), 0), min(int(xmin + crop_size), w))
         y1 = random.randint(max(int(ymax - crop_size), 0), min(int(ymin + crop_size), h))
-        return x1, y1, new_crop_size
+        return x1, y1, crop_size
 
     def __call__(self, image, target):
         image_size = image.size
