@@ -87,7 +87,7 @@ def boxlist_iou(boxlist1, boxlist2):
 
     iou = inter / (area1[:, None] + area2 - inter)
 
-    if boxlist1.has_field("ignore"):
+    if boxlist1.has_field("ignore") and M*N!=0:
         ignore = boxlist1.get_field("ignore").type(torch.uint8)
         ignore = ignore.view(N,1).repeat(1,M)
         pos = iou >= 0.7
