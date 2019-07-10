@@ -55,11 +55,32 @@ def do_train(
     start_training_time = time.time()
     end = time.time()
     #writer = SummaryWriter('log')
+    import cv2, numpy
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
         
-        if any(len(target) < 1 or len(target) - len(target.extra_fields["ignore"].nonzero().squeeze()) < 1 for target in targets):
+        if any(len(target) < 1 for target in targets):
             #logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
             continue
+        
+        im = images.tensors
+        target = targets[0]
+        target = target.convert("xyxy")
+        bboxes = target.bbox.numpy()
+        im = im.numpy().squeeze().transpose(1,2,0)
+        im = im[:,:, [2,1,0]]
+        im = im + 122
+        img = im.astype(numpy.uint8).copy()
+        for i in range(bboxes.shape[0]):
+            bbox = bboxes[i]
+            xmin = bbox[0]
+            ymin = bbox[1]
+            xmax = bbox[2]
+            ymax = bbox[3]
+            img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255,0,0), 2)
+        
+        cv2.imwrite("cropImage", im)
+        import pdb; pdb.set_trace()
+        
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
