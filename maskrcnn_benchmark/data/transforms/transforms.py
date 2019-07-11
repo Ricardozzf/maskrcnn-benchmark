@@ -166,15 +166,16 @@ class RandomCrop(object):
         x1, y1, crop_size = self.get_params(image_size)
 
         original_target = target.copy_with_fields(list(target.extra_fields.keys()))
-        target_num = len(original_target)
+        target_num = len((1-original_target.extra_fields["ignore"]).nonzero())
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = target.crop(box)
         ious = target.area() / original_target.area()
 
-        if target.has_field("ignore"):
-            target.extra_fields["ignore"] = ((ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8).squeeze(1)).unsqueeze(1)
-            if len(target.extra_fields["ignore"].nonzero()) < int(1/3.0 * target_num):
+        if target.has_field("ignore") and len((1-target.extra_fields["ignore"]).nonzero()) >= int(2/3.0 * target_num):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
+                indices = ious <= self.iou_thresh
+                target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
+                target.bbox = target.bbox[indices]
                 return image, target
         else:
             target.bbox = target.bbox[ious <= self.iou_thresh]
@@ -186,8 +187,10 @@ class RandomCrop(object):
         x1, y1, crop_size = self.get_safe_params(image_size, crop_size, original_target)
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = original_target.crop(box) # re-crop original target
-        target = target.convert("xyxy")
-        ig = target.bbox[:,0] == target.bbox[:,2] or target.bbox[:,1] == target.bbox[:,3]
-        target.extra_fields["ignore"] = ig.unsqueeze(1)
+        ious = target.area() / original_target.area()
+        indices = ious <= self.iou_thresh
+        
+        target.bbox = target.bbox[indices]
+        target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
         image = F.crop(image, y1, x1, crop_size, crop_size)
         return image, target

@@ -228,7 +228,7 @@ class BoxList(object):
     def area(self):
         box = self.bbox
         if self.mode == "xyxy":
-            TO_REMOVE = 1
+            TO_REMOVE = 0
             area = (box[:, 2] - box[:, 0] + TO_REMOVE) * (box[:, 3] - box[:, 1] + TO_REMOVE)
         elif self.mode == "xywh":
             area = box[:, 2] * box[:, 3]
