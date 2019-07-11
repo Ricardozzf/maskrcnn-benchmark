@@ -147,7 +147,7 @@ class RandomCrop(object):
         ymax = values_max[3].item()
 
         if xmax - xmin + 1 > crop_size or ymax - ymin +1 > crop_size:
-            min_crop_size = max(xmax-xmin+1, ymax-ymin+1)
+            min_crop_size = min(max(xmax-xmin+1, ymax-ymin+1), w, h)
             new_crop_size = random.randint(min_crop_size, min(w,h))
             return xmin, ymin, new_crop_size
         
@@ -165,7 +165,7 @@ class RandomCrop(object):
         target = target.crop(box)
         ious = target.area() / original_target.area()
         tr = ious >= self.iou_thresh
-        target.extra_fields["ignore"] = ious <= self.iou_thresh | target.extra_fields["ignore"]
+        target.extra_fields["ignore"] = (ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8)
         
         if len(tr.nonzero()) > int(2/3.0 * target_num):
             image = F.crop(image, y1, x1, crop_size, crop_size)
