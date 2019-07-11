@@ -148,10 +148,10 @@ class RandomCrop(object):
 
         if xmax - xmin + 1 > crop_size or ymax - ymin +1 > crop_size:
             min_crop_size = min(max(xmax-xmin+1, ymax-ymin+1), w, h)
+            x1 = min(w-min_crop_size, xmin)
+            y1 = min(h-min_crop_size, ymin)
 
-            new_crop_size = random.randint(min_crop_size, min(w-xmin,h-ymin))
-
-            return xmin, ymin, new_crop_size
+            return x1, y1, min_crop_size
         
         x1 = random.randint(max(int(xmax - crop_size), 0), min(int(xmin), w - crop_size))
         y1 = random.randint(max(int(ymax - crop_size), 0), min(int(ymin), h - crop_size))
