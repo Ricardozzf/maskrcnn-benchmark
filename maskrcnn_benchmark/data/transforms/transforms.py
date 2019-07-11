@@ -172,7 +172,7 @@ class RandomCrop(object):
         ious = target.area() / original_target.area()
 
         if target.has_field("ignore"):
-            target.extra_fields["ignore"] = (ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8)
+            target.extra_fields["ignore"] = ((ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8).suqeeze(1)).unsqueeze(1)
             if len(target.extra_fields["ignore"].nonzero() < int(1/3.0 * target_num)):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
                 return image, target
