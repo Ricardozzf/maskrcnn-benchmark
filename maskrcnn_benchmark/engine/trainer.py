@@ -70,11 +70,12 @@ def do_train(
         im = im[:,:, [2,1,0]]
         im = im + 122
         img = im.astype(numpy.uint8).copy()
+        ig = 0
+        if target.has_field("ignore"):
+            ig = target.extra_fields["ignore"].squeeze(1)
         for i in range(bboxes.shape[0]):
-            if target.has_field("ignore"):
-                ig = target.extra_fields["ignore"].squeeze()
-                if ig[i] == 1:
-                    continue
+            if ig[i] == 1:
+                continue
             bbox = bboxes[i]
             xmin = bbox[0]
             ymin = bbox[1]

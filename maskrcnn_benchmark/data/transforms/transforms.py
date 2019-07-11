@@ -139,8 +139,12 @@ class RandomCrop(object):
     def get_safe_params(self, image_size, crop_size, target):
         w, h = image_size
         target = target.convert("xyxy")
-        values_min, _ = target.bbox.min(0)
-        values_max, _ = target.bbox.max(0)
+        ig = 1 - target.extra_fields["ignore"].suqeeze(1)
+        bboxes = target.bbox[ig]
+        if bboxes.shape[0] == 0:
+            return 0, 0, min(w,h)
+        values_min, _ = bboxes.min(0)
+        values_max, _ = bboxes.max(0)
         xmin = values_min[0].item()
         ymin = values_min[1].item()
         xmax = values_max[2].item()
