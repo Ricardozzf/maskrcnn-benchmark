@@ -139,16 +139,16 @@ class RandomCrop(object):
     def get_safe_params(self, image_size, crop_size, target):
         w, h = image_size
         target = target.convert("xyxy")
-        ig = 1 - target.extra_fields["ignore"].suqeeze(1)
-        bboxes = target.bbox[ig]
+        ig = 1 - target.extra_fields["ignore"].squeeze(1)
+        bboxes = target.bbox[ig.nonzero()]
         if bboxes.shape[0] == 0:
             return 0, 0, min(w,h)
         values_min, _ = bboxes.min(0)
         values_max, _ = bboxes.max(0)
-        xmin = values_min[0].item()
-        ymin = values_min[1].item()
-        xmax = values_max[2].item()
-        ymax = values_max[3].item()
+        xmin = values_min[0,0].item()
+        ymin = values_min[0,1].item()
+        xmax = values_max[0,2].item()
+        ymax = values_max[0,3].item()
 
         if xmax - xmin + 1 > crop_size or ymax - ymin +1 > crop_size:
             min_crop_size = min(max(xmax-xmin+1, ymax-ymin+1), w, h)
@@ -172,8 +172,8 @@ class RandomCrop(object):
         ious = target.area() / original_target.area()
 
         if target.has_field("ignore"):
-            target.extra_fields["ignore"] = ((ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8).suqeeze(1)).unsqueeze(1)
-            if len(target.extra_fields["ignore"].nonzero() < int(1/3.0 * target_num)):
+            target.extra_fields["ignore"] = ((ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8).squeeze(1)).unsqueeze(1)
+            if len(target.extra_fields["ignore"].nonzero()) < int(1/3.0 * target_num):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
                 return image, target
         else:
@@ -186,5 +186,8 @@ class RandomCrop(object):
         x1, y1, crop_size = self.get_safe_params(image_size, crop_size, original_target)
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = original_target.crop(box) # re-crop original target
+        target = target.convert("xyxy")
+        ig = target.bbox[:,0] == target.bbox[:,2] or target.bbox[:,1] == target.bbox[:,3]
+        target.extra_fields["ignore"] = ig.unsqueeze(1)
         image = F.crop(image, y1, x1, crop_size, crop_size)
         return image, target
