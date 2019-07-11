@@ -166,13 +166,18 @@ class RandomCrop(object):
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = target.crop(box)
         ious = target.area() / original_target.area()
-        tr = ious >= self.iou_thresh
-        target.extra_fields["ignore"] = (ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8)
-        
-        if len(tr.nonzero()) > int(2/3.0 * target_num):
-            image = F.crop(image, y1, x1, crop_size, crop_size)
-            return image, target
 
+        if target.has_field("ignore"):
+            target.extra_fields["ignore"] = (ious <= self.iou_thresh) | target.extra_fields["ignore"].type(torch.uint8)
+            if len(target.extra_fields["ignore"].nonzero() < int(1/3.0 * target_num)):
+                image = F.crop(image, y1, x1, crop_size, crop_size)
+                return image, target
+        else:
+            target.bbox = target.bbox[ious <= self.iou_thresh]
+            if len(target) > int(2/3.0 * target_num):
+                image = F.crop(image, y1, x1, crop_size, crop_size)
+                return image, target
+        
         # guard against no box available after crop
         x1, y1, crop_size = self.get_safe_params(image_size, crop_size, original_target)
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)

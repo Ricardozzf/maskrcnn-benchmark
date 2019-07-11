@@ -66,14 +66,15 @@ def do_train(
         target = targets[0]
         target = target.convert("xyxy")
         bboxes = target.bbox.numpy()
-        ig = target.extra_fields["ignore"]
         im = im.numpy().squeeze().transpose(1,2,0)
         im = im[:,:, [2,1,0]]
         im = im + 122
         img = im.astype(numpy.uint8).copy()
         for i in range(bboxes.shape[0]):
-            if ig[i] == 1:
-                continue
+            if target.has_field("ignore"):
+                ig = target.extra_fields["ignore"].squeeze()
+                if ig[i] == 1:
+                    continue
             bbox = bboxes[i]
             xmin = bbox[0]
             ymin = bbox[1]
@@ -81,7 +82,7 @@ def do_train(
             ymax = bbox[3]
             img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255,0,0), 2)
         
-        cv2.imwrite("cropImage.jpg", im)
+        cv2.imwrite("cropImage.jpg", img)
         import pdb; pdb.set_trace()
 
         data_time = time.time() - end
