@@ -58,9 +58,10 @@ def do_train(
     import cv2, numpy
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
         
-        if any(len(target) < 1 or len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 for target in targets):
+        if any(len(target) < 1 for target in targets):
             #logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
             continue
+        if or any(len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 for target in targets)
         
         im = images.tensors
         target = targets[0]

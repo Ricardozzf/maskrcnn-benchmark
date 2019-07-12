@@ -139,8 +139,10 @@ class RandomCrop(object):
     def get_safe_params(self, image_size, crop_size, target):
         w, h = image_size
         target = target.convert("xyxy")
-        ig = 1 - target.extra_fields["ignore"].squeeze(1)
-        bboxes = target.bbox[ig.nonzero()]
+        bboxes = target.bbox
+        if target.has_field("ignore"):
+            ig = 1 - target.extra_fields["ignore"].squeeze(1)
+            bboxes = target.bbox[ig.nonzero()]
         if bboxes.shape[0] == 0:
             return 0, 0, min(w,h)
         values_min, _ = bboxes.min(0)
@@ -166,12 +168,15 @@ class RandomCrop(object):
         x1, y1, crop_size = self.get_params(image_size)
 
         original_target = target.copy_with_fields(list(target.extra_fields.keys()))
-        target_num = len((1-original_target.extra_fields["ignore"]).nonzero())
+        target_num = len(original_target)
+        if target.has_field("ignore"):
+            target_num = len((1-original_target.extra_fields["ignore"]).nonzero())
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = target.crop(box)
         ious = target.area() / original_target.area()
 
-        if target.has_field("ignore") and len((1-target.extra_fields["ignore"]).nonzero()) >= int(2/3.0 * target_num):
+        if target.has_field("ignore"):
+            if len((1-target.extra_fields["ignore"]).nonzero()) >= int(2/3.0 * target_num):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
                 indices = ious >= self.iou_thresh
                 target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
@@ -191,6 +196,7 @@ class RandomCrop(object):
         indices = ious >= self.iou_thresh
         
         target.bbox = target.bbox[indices]
-        target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
+        if target.has_field("ignore"):
+            target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
         image = F.crop(image, y1, x1, crop_size, crop_size)
         return image, target
