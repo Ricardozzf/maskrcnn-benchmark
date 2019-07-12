@@ -147,6 +147,10 @@ class RandomCrop(object):
             return 0, 0, min(w,h)
         values_min, _ = bboxes.min(0)
         values_max, _ = bboxes.max(0)
+        if values_min.ndimension() == 1:
+            values_min = values_min.unsqueeze(0)
+        if values_max.ndimension() == 1:
+            values_max = values_max.unsqueeze(0)
         xmin = values_min[0,0].item()
         ymin = values_min[0,1].item()
         xmax = values_max[0,2].item()
