@@ -173,12 +173,12 @@ class RandomCrop(object):
 
         if target.has_field("ignore") and len((1-target.extra_fields["ignore"]).nonzero()) >= int(2/3.0 * target_num):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
-                indices = ious <= self.iou_thresh
+                indices = ious >= self.iou_thresh
                 target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
                 target.bbox = target.bbox[indices]
                 return image, target
         else:
-            target.bbox = target.bbox[ious <= self.iou_thresh]
+            target.bbox = target.bbox[ious >= self.iou_thresh]
             if len(target) > int(2/3.0 * target_num):
                 image = F.crop(image, y1, x1, crop_size, crop_size)
                 return image, target
@@ -188,7 +188,7 @@ class RandomCrop(object):
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
         target = original_target.crop(box) # re-crop original target
         ious = target.area() / original_target.area()
-        indices = ious <= self.iou_thresh
+        indices = ious >= self.iou_thresh
         
         target.bbox = target.bbox[indices]
         target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
