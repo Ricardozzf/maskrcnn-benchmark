@@ -61,7 +61,11 @@ def do_train(
         if any(len(target) < 1 for target in targets):
             #logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
             continue
-        if or any(len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 for target in targets)
+        for target in targets:
+            if target.has_field("ignore"):
+                if len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 :
+                    continue
+ 
         
         im = images.tensors
         target = targets[0]
