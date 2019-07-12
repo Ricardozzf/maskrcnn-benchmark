@@ -67,7 +67,7 @@ class RPNPostProcessor(torch.nn.Module):
         # later cat of bbox requires all fields to be present for all bbox
         # so we need to add a dummy for objectness that's missing
         for gt_box, gt_ignore in zip(gt_boxes, gt_ignores):
-            if gt_ignore:
+            if gt_ignore is not None:
                 gt_ignore = gt_ignore.view(-1).long().to(device)
                 gt_box.bbox = gt_box.bbox[(gt_ignore == 0).nonzero().squeeze(), :]
             if gt_box.bbox.ndimension() == 1:

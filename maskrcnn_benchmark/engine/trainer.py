@@ -66,7 +66,7 @@ def do_train(
                 if len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 :
                     continue
  
-        
+        '''
         im = images.tensors
         target = targets[0]
         target = target.convert("xyxy")
@@ -90,7 +90,7 @@ def do_train(
         
         cv2.imwrite("cropImage.jpg", img)
         import pdb; pdb.set_trace()
-
+        '''
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
