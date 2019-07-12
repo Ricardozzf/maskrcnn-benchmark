@@ -61,12 +61,12 @@ class RPNPostProcessor(torch.nn.Module):
 
         gt_boxes = [target.copy_with_fields([],True) for target in targets]
 
-        gt_ignore = [target.get_field("ignore") if target.has_field("ignore") else None for target in targets]
+        gt_ignores = [target.get_field("ignore") if target.has_field("ignore") else None for target in targets]
 
 
         # later cat of bbox requires all fields to be present for all bbox
         # so we need to add a dummy for objectness that's missing
-        for gt_box, gt_ignore in zip(gt_boxes, gt_ignore):
+        for gt_box, gt_ignore in zip(gt_boxes, gt_ignores):
             if not gt_ignore:
                 gt_ignore = gt_ignore.view(-1).long().to(device)
                 gt_box.bbox = gt_box.bbox[(gt_ignore==0).nonzero().squeeze(), :]
