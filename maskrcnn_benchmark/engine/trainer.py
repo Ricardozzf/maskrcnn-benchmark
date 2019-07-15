@@ -61,12 +61,14 @@ def do_train(
         if any(len(target) < 1 for target in targets):
             #logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
             continue
+        if any(target.has_field("ignore") and len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 for target in targets):
+            continue
+        '''
         for target in targets:
             if target.has_field("ignore"):
                 if len(target)-len(target.extra_fields["ignore"].nonzero()) < 1 :
                     continue
  
-        '''
         im = images.tensors
         target = targets[0]
         target = target.convert("xyxy")
@@ -94,8 +96,7 @@ def do_train(
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
-
-        scheduler.step()
+        
 
         images = images.to(device)
         targets = [target.to(device) for target in targets]
@@ -115,6 +116,7 @@ def do_train(
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
         optimizer.step()
+        scheduler.step()
 
         batch_time = time.time() - end
         end = time.time()
