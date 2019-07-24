@@ -128,7 +128,7 @@ class RandomCrop(object):
 
     def get_cropSize(self, image_size, dstSize=1200):
         w, h = image_size
-        cropSize = min(min(w,h),dstSize/4)
+        cropSize = min(min(w,h),dstSize/3)
         return cropSize
 
     def get_safe_params(self, image_size, crop_size, target):
@@ -156,7 +156,7 @@ class RandomCrop(object):
         if xmax - xmin + 1 > crop_size or ymax - ymin +1 > crop_size:
             targets_num = bboxes.shape[0]
             pos = random.randint(0, targets_num - 1)
-            cx1, cy1, cx2, cy2 = bboxes[pos]
+            cx1, cy1, cx2, cy2 = bboxes[pos].squeeze()
             cx = (cx1 + cx2).item() / 2
             cy = (cy1 + cy2).item() / 2
             
