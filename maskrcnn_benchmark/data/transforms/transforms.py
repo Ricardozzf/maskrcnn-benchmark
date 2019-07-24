@@ -126,15 +126,10 @@ class RandomCrop(object):
         # scale realtive to the smaller size of the image
         self.iou_thresh = iou_thresh
 
-    def get_params(self, image_size):
+    def get_cropSize(self, image_size, dstSize=1200):
         w, h = image_size
-        max_s = min(w,h)
-        min_s = 1/3.0 * max_s
-        # randomly sample a scale within the range
-        crop_size = int(random.random() * (max_s - min_s) + min_s)
-        x1 = random.randint(0, w - crop_size)
-        y1 = random.randint(0, h - crop_size)
-        return x1, y1, crop_size
+        cropSize = min(min(w,h),dstSize/4)
+        return cropSize
 
     def get_safe_params(self, image_size, crop_size, target):
         w, h = image_size
@@ -145,6 +140,8 @@ class RandomCrop(object):
             bboxes = target.bbox[ig.nonzero()]
         if bboxes.shape[0] == 0:
             return 0, 0, min(w,h)
+        
+
         values_min, _ = bboxes.min(0)
         values_max, _ = bboxes.max(0)
         if values_min.ndimension() == 1:
@@ -157,11 +154,19 @@ class RandomCrop(object):
         ymax = values_max[0,3].item()
 
         if xmax - xmin + 1 > crop_size or ymax - ymin +1 > crop_size:
-            min_crop_size = min(max(xmax-xmin+1, ymax-ymin+1), w, h)
-            x1 = min(w-min_crop_size, xmin)
-            y1 = min(h-min_crop_size, ymin)
+            targets_num = bboxes.shape[0]
+            pos = random.randint(0, targets_num - 1)
+            cx1, cy1, cx2, cy2 = bboxes[pos]
+            cx = (cx1 + cx2).item() / 2
+            cy = (cy1 + cy2).item() / 2
+            
+            x1 = max(0, cx - crop_size / 2)
+            y1 = max(0, cy - crop_size / 2)
 
-            return x1, y1, min_crop_size
+            x1 = min(w - crop_size, x1)
+            y1 = min(h- crop_size, y1)
+
+            return x1, y1, crop_size
         
         x1 = random.randint(max(int(xmax - crop_size), 0), min(int(xmin), w - crop_size))
         y1 = random.randint(max(int(ymax - crop_size), 0), min(int(ymin), h - crop_size))
@@ -169,29 +174,10 @@ class RandomCrop(object):
 
     def __call__(self, image, target):
         image_size = image.size
-        x1, y1, crop_size = self.get_params(image_size)
+        crop_size = self.get_cropSize(image_size)
 
         original_target = target.copy_with_fields(list(target.extra_fields.keys()))
-        target_num = len(original_target)
-        if target.has_field("ignore"):
-            target_num = len((1-original_target.extra_fields["ignore"]).nonzero())
-        box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
-        target = target.crop(box)
-        ious = target.area() / original_target.area()
-        
-        if target.has_field("ignore"):
-            indices = ious >= self.iou_thresh
-            target.extra_fields["ignore"] = target.extra_fields["ignore"][indices]
-            if len((1-target.extra_fields["ignore"]).nonzero()) > int(2/3.0 * target_num):
-                image = F.crop(image, y1, x1, crop_size, crop_size)
-                target.bbox = target.bbox[indices]
-                return image, target
-        else:
-            target.bbox = target.bbox[ious >= self.iou_thresh]
-            if len(target) > int(2/3.0 * target_num):
-                image = F.crop(image, y1, x1, crop_size, crop_size)
-                return image, target
-        
+ 
         # guard against no box available after crop
         x1, y1, crop_size = self.get_safe_params(image_size, crop_size, original_target)
         box = (x1, y1, x1+crop_size-1, y1+crop_size-1)
