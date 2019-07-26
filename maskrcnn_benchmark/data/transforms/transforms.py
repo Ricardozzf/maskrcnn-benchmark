@@ -126,10 +126,33 @@ class RandomCrop(object):
         # scale realtive to the smaller size of the image
         self.iou_thresh = iou_thresh
 
-    def get_cropSize(self, image_size, dstSize=1200):
+    def get_cropSize(self, image_size, target):
         w, h = image_size
-        cropSize = min(min(w,h),dstSize/3)
-        return cropSize
+        target =  target.convert("xywh")
+        bboxes = target.bbox
+        if target.has_field("ignore"):
+            ig = 1 - target.extra_fields["ignore"].squeeze(1)
+            bboxes = target.bbox[ig.nonzero()]
+        if bboxes.shape[0] == 0:
+            return min(w,h)
+    
+        gt_num = bboxes.shape[0]
+        w = bboxes[:, 2]
+        h = bboxes[:, 3]
+        
+        ratio_low = ((64.0 * 64.0) / (w*h)).max()
+        ratio_up = ((256.0 * 256.0) / (w*h)).min()
+        ratio_bool = w*h / (256.0 * 256.0) *ratio_low
+        ratio_bool = ratio_bool < 1
+        
+        too_big_num = ratio_bool.nonzero().shape[0]
+        ratio = 1
+        if too_big_num < gt_num / 2.0:
+            ratio = ratio_low
+        else:
+            ratio = ratio_up
+        
+        return min(800 / ratio, min(w,h))
 
     def get_safe_params(self, image_size, crop_size, target):
         w, h = image_size
@@ -174,7 +197,7 @@ class RandomCrop(object):
 
     def __call__(self, image, target):
         image_size = image.size
-        crop_size = self.get_cropSize(image_size)
+        crop_size = self.get_cropSize(image_size, target)
 
         original_target = target.copy_with_fields(list(target.extra_fields.keys()))
  
