@@ -108,6 +108,9 @@ class ResNet(nn.Module):
             bottleneck_channels = stage2_bottleneck_channels * stage2_relative_factor
             out_channels = stage2_out_channels * stage2_relative_factor
             stage_with_dcn = cfg.MODEL.RESNETS.STAGE_WITH_DCN[stage_spec.index -1]
+            dilation = 1
+            if stage_spec.index == 1:
+                dilation = 2
             module = _make_stage(
                 transformation_module,
                 in_channels,
@@ -117,6 +120,7 @@ class ResNet(nn.Module):
                 num_groups,
                 cfg.MODEL.RESNETS.STRIDE_IN_1X1,
                 first_stride=int(stage_spec.index > 1) + 1,
+                dilation=dilation,
                 dcn_config={
                     "stage_with_dcn": stage_with_dcn,
                     "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
