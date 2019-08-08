@@ -77,6 +77,11 @@ ResNet152FPNStagesTo5 = tuple(
     StageSpec(index=i, block_count=c, return_features=r)
     for (i, c, r) in ((1, 3, True), (2, 8, True), (3, 36, True), (4, 3, True))
 )
+# ResNet-adapt
+ResNet59FPNStagesTo5 = tuple(
+    StageSpec(index=i, block_count=c, return_features=r)
+    for (i, c, r) in ((1, 6, True), (2, 4, True), (3, 6, True), (4, 3, True), (5, 3, True))
+)
 
 class ResNet(nn.Module):
     def __init__(self, cfg):
@@ -102,31 +107,52 @@ class ResNet(nn.Module):
         stage2_out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
         self.stages = []
         self.return_features = {}
+        dilation = 1
+        module = None
         for stage_spec in stage_specs:
             name = "layer" + str(stage_spec.index)
             stage2_relative_factor = 2 ** (stage_spec.index - 1)
             bottleneck_channels = stage2_bottleneck_channels * stage2_relative_factor
             out_channels = stage2_out_channels * stage2_relative_factor
             stage_with_dcn = cfg.MODEL.RESNETS.STAGE_WITH_DCN[stage_spec.index -1]
-            dilation = 1
-            if stage_spec.index == 1:
+            if cfg.MODEL.RESNETS.USE_DETNET and stage_spec.index > 3:
+                out_channels = 256
+                bottleneck_channels = 256
                 dilation = 2
-            module = _make_stage(
-                transformation_module,
-                in_channels,
-                bottleneck_channels,
-                out_channels,
-                stage_spec.block_count,
-                num_groups,
-                cfg.MODEL.RESNETS.STRIDE_IN_1X1,
-                first_stride=int(stage_spec.index > 1) + 1,
-                dilation=dilation,
-                dcn_config={
-                    "stage_with_dcn": stage_with_dcn,
-                    "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
-                    "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
-                }
-            )
+                module = _make_stage(
+                    _TRANSFORMATION_MODULES[cfg.MODEL.RESNETS.TRANS_FUNC_DET],
+                    in_channels,
+                    bottleneck_channels,
+                    out_channels,
+                    stage_spec.block_count,
+                    num_groups,
+                    cfg.MODEL.RESNETS.STRIDE_IN_1X1,
+                    first_stride=1,
+                    dilation = dilation,
+                    dcn_config={
+                        "stage_with_dcn": stage_with_dcn,
+                        "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
+                        "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
+                    }
+                )
+            else:
+                if cfg.MODEL.RESNETS.USE_DETNET and stage_spec.index == 3:
+                    out_channels = 256
+                module = _make_stage(
+                    transformation_module,
+                    in_channels,
+                    bottleneck_channels,
+                    out_channels,
+                    stage_spec.block_count,
+                    num_groups,
+                    cfg.MODEL.RESNETS.STRIDE_IN_1X1,
+                    first_stride=int(stage_spec.index > 1) + 1,
+                    dcn_config={
+                        "stage_with_dcn": stage_with_dcn,
+                        "with_modulated_dcn": cfg.MODEL.RESNETS.WITH_MODULATED_DCN,
+                        "deformable_groups": cfg.MODEL.RESNETS.DEFORMABLE_GROUPS,
+                    }
+                )
             in_channels = out_channels
             self.add_module(name, module)
             self.stages.append(name)
@@ -347,6 +373,123 @@ class Bottleneck(nn.Module):
 
         return out
 
+class Bottleneck1x1(nn.Module):
+    def __init__(
+        self,
+        in_channels,
+        bottleneck_channels,
+        out_channels,
+        num_groups,
+        stride_in_1x1,
+        stride,
+        dilation,
+        norm_func,
+        dcn_config,
+        conv_projection = False,
+    ):
+        super(Bottleneck1x1, self).__init__()
+        
+        self.conv_projection = conv_projection
+        self.downsample = None
+        if in_channels != out_channels:
+            down_stride = stride if dilation == 1 else 1
+            self.downsample = nn.Sequential(
+                Conv2d(
+                    in_channels, out_channels,
+                    kernel_size=1, stride=down_stride, bias=False
+                ),
+                norm_func(out_channels),
+            )
+            for modules in [self.downsample,]:
+                for l in modules.modules():
+                    if isinstance(l, Conv2d):
+                        nn.init.kaiming_uniform_(l.weight, a=1)
+
+        if dilation > 1:
+            stride = 1 # reset to be 1
+
+        # The original MSRA ResNet models have stride in the first 1x1 conv
+        # The subsequent fb.torch.resnet and Caffe2 ResNe[X]t implementations have
+        # stride in the 3x3 conv
+        stride_1x1, stride_3x3 = (stride, 1) if stride_in_1x1 else (1, stride)
+
+        self.conv1 = Conv2d(
+            in_channels,
+            bottleneck_channels,
+            kernel_size=1,
+            stride=stride_1x1,
+            bias=False,
+        )
+        self.bn1 = norm_func(bottleneck_channels)
+        # TODO: specify init for the above
+        with_dcn = dcn_config.get("stage_with_dcn", False)
+        if with_dcn:
+            deformable_groups = dcn_config.get("deformable_groups", 1)
+            with_modulated_dcn = dcn_config.get("with_modulated_dcn", False)
+            self.conv2 = DFConv2d(
+                bottleneck_channels,
+                bottleneck_channels,
+                with_modulated_dcn=with_modulated_dcn,
+                kernel_size=3,
+                stride=stride_3x3,
+                groups=num_groups,
+                dilation=dilation,
+                deformable_groups=deformable_groups,
+                bias=False
+            )
+        else:
+            self.conv2 = Conv2d(
+                bottleneck_channels,
+                bottleneck_channels,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation
+            )
+            nn.init.kaiming_uniform_(self.conv2.weight, a=1)
+
+        self.bn2 = norm_func(bottleneck_channels)
+
+        self.conv3 = Conv2d(
+            bottleneck_channels, out_channels, kernel_size=1, bias=False
+        )
+        self.bn3 = norm_func(out_channels)
+
+        if conv_projection:
+            self.conv4 = Conv2d(
+                in_channels, out_channels, kernel_size=1, bias=False
+            )
+            self.bn4 = norm_func(out_channels)
+            nn.init.kaiming_uniform_(self.conv4.weight, a=1)
+
+        for l in [self.conv1, self.conv3,]:
+            nn.init.kaiming_uniform_(l.weight, a=1)
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu_(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = F.relu_(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+        if self.conv_projection:
+            out += self.bn4(self.conv4(identity))
+        else:
+            out += identity
+        out = F.relu_(out)
+
+        return out
 
 class BaseStem(nn.Module):
     def __init__(self, cfg, norm_func):
@@ -426,6 +569,30 @@ class BottleneckWithGN(Bottleneck):
             dcn_config=dcn_config
         )
 
+class Bottleneck1x1WithGN(Bottleneck1x1):
+    def __init__(
+        self,
+        in_channels,
+        bottleneck_channels,
+        out_channels,
+        num_groups=1,
+        stride_in_1x1=True,
+        stride=1,
+        dilation=1,
+        dcn_config={}
+    ):
+        super(Bottleneck1x1WithGN, self).__init__(
+            in_channels=in_channels,
+            bottleneck_channels=bottleneck_channels,
+            out_channels=out_channels,
+            num_groups=num_groups,
+            stride_in_1x1=stride_in_1x1,
+            stride=stride,
+            dilation=dilation,
+            norm_func=group_norm,
+            dcn_config=dcn_config
+        )
+
 
 class StemWithGN(BaseStem):
     def __init__(self, cfg):
@@ -435,6 +602,7 @@ class StemWithGN(BaseStem):
 _TRANSFORMATION_MODULES = Registry({
     "BottleneckWithFixedBatchNorm": BottleneckWithFixedBatchNorm,
     "BottleneckWithGN": BottleneckWithGN,
+    "Bottleneck1x1WithGN": Bottleneck1x1WithGN,
 })
 
 _STEM_MODULES = Registry({
@@ -452,4 +620,5 @@ _STAGE_SPECS = Registry({
     "R-101-FPN": ResNet101FPNStagesTo5,
     "R-101-FPN-RETINANET": ResNet101FPNStagesTo5,
     "R-152-FPN": ResNet152FPNStagesTo5,
+    "R-59-FPN": ResNet59FPNStagesTo5,
 })

@@ -277,6 +277,8 @@ _C.MODEL.RESNETS.STRIDE_IN_1X1 = True
 _C.MODEL.RESNETS.TRANS_FUNC = "BottleneckWithFixedBatchNorm"
 # ResNet's stem function (conv1 and pool1)
 _C.MODEL.RESNETS.STEM_FUNC = "StemWithFixedBatchNorm"
+# Resnet's det implement
+_C.MODEL.RESNETS.TRANS_FUNC_DET = "Bottleneck1x1WithGN"
 
 # Apply dilation in stage "res5"
 _C.MODEL.RESNETS.RES5_DILATION = 1
@@ -288,6 +290,8 @@ _C.MODEL.RESNETS.STEM_OUT_CHANNELS = 64
 _C.MODEL.RESNETS.STAGE_WITH_DCN = (False, False, False, False)
 _C.MODEL.RESNETS.WITH_MODULATED_DCN = False
 _C.MODEL.RESNETS.DEFORMABLE_GROUPS = 1
+
+_C.MODEL.RESNETS.USE_DETNET = False
 
 
 # ---------------------------------------------------------------------------- #
