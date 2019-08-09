@@ -80,7 +80,7 @@ ResNet152FPNStagesTo5 = tuple(
 # ResNet-adapt
 ResNet59FPNStagesTo5 = tuple(
     StageSpec(index=i, block_count=c, return_features=r)
-    for (i, c, r) in ((1, 6, True), (2, 4, True), (3, 6, True), (4, 3, True), (5, 3, True))
+    for (i, c, r) in ((1, 3, True), (2, 4, True), (3, 6, True), (4, 3, True), (5, 3, True))
 )
 
 class ResNet(nn.Module):
@@ -385,11 +385,9 @@ class Bottleneck1x1(nn.Module):
         dilation,
         norm_func,
         dcn_config,
-        conv_projection = False,
     ):
         super(Bottleneck1x1, self).__init__()
         
-        self.conv_projection = conv_projection
         self.downsample = None
         if in_channels != out_channels:
             down_stride = stride if dilation == 1 else 1
@@ -457,12 +455,12 @@ class Bottleneck1x1(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        if conv_projection:
-            self.conv4 = Conv2d(
-                in_channels, out_channels, kernel_size=1, bias=False
-            )
-            self.bn4 = norm_func(out_channels)
-            nn.init.kaiming_uniform_(self.conv4.weight, a=1)
+        
+        self.conv4 = Conv2d(
+            in_channels, out_channels, kernel_size=1, bias=False
+        )
+        self.bn4 = norm_func(out_channels)
+        nn.init.kaiming_uniform_(self.conv4.weight, a=1)
 
         for l in [self.conv1, self.conv3,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
@@ -483,10 +481,8 @@ class Bottleneck1x1(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
-        if self.conv_projection:
-            out += self.bn4(self.conv4(identity))
-        else:
-            out += identity
+        
+        out += self.bn4(self.conv4(identity))
         out = F.relu_(out)
 
         return out

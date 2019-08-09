@@ -2,7 +2,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-import resnet as Res
 
 
 class FPN(nn.Module):
