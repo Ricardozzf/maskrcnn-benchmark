@@ -71,8 +71,10 @@ class Pooler(nn.Module):
         self.output_size = output_size
         # get the levels in the feature map by leveraging the fact that the network always
         # downsamples by a factor of 2 at each level.
-        lvl_min = -torch.log2(torch.tensor(scales[0], dtype=torch.float32)).item()
-        lvl_max = -torch.log2(torch.tensor(scales[-1], dtype=torch.float32)).item()
+        #lvl_min = -torch.log2(torch.tensor(scales[0], dtype=torch.float32)).item()
+        #lvl_max = -torch.log2(torch.tensor(scales[-1], dtype=torch.float32)).item()
+        lvl_min = 1
+        lvl_max = 5
         self.map_levels = LevelMapper(lvl_min, lvl_max)
 
     def convert_to_roi_format(self, boxes):
