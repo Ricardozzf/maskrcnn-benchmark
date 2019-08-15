@@ -311,7 +311,6 @@ class Bottleneck(nn.Module):
             )
             nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
-<<<<<<< HEAD
         '''
         self.conv2 = Conv2d(
             bottleneck_channels,
@@ -357,8 +356,6 @@ class Bottleneck(nn.Module):
             dilation=dilation
         )
 
-=======
->>>>>>> master
         self.bn2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
@@ -366,7 +363,6 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-<<<<<<< HEAD
         self.globalAvgPool = nn.AdaptiveAvgPool2d((1,1))
         self.fc1 = nn.Linear(in_features=out_channels, out_features=round(out_channels / 16))
         self.fc2 = nn.Linear(in_features=round(out_channels / 16), out_features=out_channels)
@@ -375,9 +371,6 @@ class Bottleneck(nn.Module):
 
 
         for l in [self.conv1, self.conv2_1, self.conv2_2, self.conv2_3, self.conv3,]:
-=======
-        for l in [self.conv1, self.conv3,]:
->>>>>>> master
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
