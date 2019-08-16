@@ -299,9 +299,21 @@ class Bottleneck(nn.Module):
                 bias=False
             )
         else:
+            
             self.conv2 = Conv2d(
-                bottleneck_channels,
-                bottleneck_channels,
+                bottleneck_channels // 4,
+                bottleneck_channels // 4,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation
+            )   
+        
+            self.conv2_1 = Conv2d(
+                bottleneck_channels // 4,
+                bottleneck_channels // 4,
                 kernel_size=3,
                 stride=stride_3x3,
                 padding=dilation,
@@ -309,69 +321,32 @@ class Bottleneck(nn.Module):
                 groups=num_groups,
                 dilation=dilation
             )
-            nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
-        '''
-        self.conv2 = Conv2d(
-            bottleneck_channels,
-            bottleneck_channels,
-            kernel_size=3,
-            stride=stride_3x3,
-            padding=dilation,
-            bias=False,
-            groups=num_groups,
-            dilation=dilation
-        )
-        '''
-        self.conv2_1 = Conv2d(
-            bottleneck_channels // 4,
-            bottleneck_channels // 4,
-            kernel_size=3,
-            stride=stride_3x3,
-            padding=dilation,
-            bias=False,
-            groups=num_groups,
-            dilation=dilation
-        )
+            self.conv2_2 = Conv2d(
+                bottleneck_channels // 4,
+                bottleneck_channels // 4,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation
+            )
 
-        self.conv2_2 = Conv2d(
-            bottleneck_channels // 4,
-            bottleneck_channels // 4,
-            kernel_size=3,
-            stride=stride_3x3,
-            padding=dilation,
-            bias=False,
-            groups=num_groups,
-            dilation=dilation
-        )
+            self.bn2 = norm_func(bottleneck_channels)
 
-        self.conv2_3 = Conv2d(
-            bottleneck_channels // 4,
-            bottleneck_channels // 4,
-            kernel_size=3,
-            stride=stride_3x3,
-            padding=dilation,
-            bias=False,
-            groups=num_groups,
-            dilation=dilation
-        )
+            self.conv3 = Conv2d(
+                bottleneck_channels, out_channels, kernel_size=1, bias=False
+            )
+            self.bn3 = norm_func(out_channels)
 
-        self.bn2 = norm_func(bottleneck_channels)
+            self.globalAvgPool = nn.AdaptiveAvgPool2d((1,1))
+            self.fc1 = nn.Linear(in_features=out_channels, out_features=round(out_channels / 8))
+            self.fc2 = nn.Linear(in_features=round(out_channels / 8), out_features=out_channels)
+            self.sigmoid = nn.Sigmoid()
 
-        self.conv3 = Conv2d(
-            bottleneck_channels, out_channels, kernel_size=1, bias=False
-        )
-        self.bn3 = norm_func(out_channels)
-
-        self.globalAvgPool = nn.AdaptiveAvgPool2d((1,1))
-        self.fc1 = nn.Linear(in_features=out_channels, out_features=round(out_channels / 16))
-        self.fc2 = nn.Linear(in_features=round(out_channels / 16), out_features=out_channels)
-        self.sigmoid = nn.Sigmoid()
-
-
-
-        for l in [self.conv1, self.conv2_1, self.conv2_2, self.conv2_3, self.conv3,]:
-            nn.init.kaiming_uniform_(l.weight, a=1)
+        for l in [self.conv1, self.conv2, self.conv2_1, self.conv2_2, self.conv3,]:
+                nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
         identity = x
