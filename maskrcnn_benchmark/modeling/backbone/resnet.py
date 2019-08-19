@@ -388,7 +388,14 @@ class Bottleneck(nn.Module):
 
         out += identity
         out = F.relu_(out)
+        
+        '''
+        out_w1x1, _ = torch.max(out, 2)[0]
+        out_h1x1, _ = torch.max(out, 3)[0]
 
+        out_w1x1 = F.avg_pool1d(out_w1x1)
+        out_h1x1 = F.avg_pool1d(out_h1x1)
+        '''
         return out
 
 
