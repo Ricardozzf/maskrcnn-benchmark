@@ -361,9 +361,9 @@ class Bottleneck(nn.Module):
         out3 = out[:, 2*n_channel:3*n_channel, :, :]
         out4 = out[:, 3*n_channel:, :, :]
 
-        out2 = self.conv2_1(out2)
-        out3 = self.conv2_2(out2 + out3)
-        out4 = self.conv2_3(out3 + out4)
+        out2 = self.conv2(out2)
+        out3 = self.conv2_1(out2 + out3)
+        out4 = self.conv2_2(out3 + out4)
 
         out = torch.cat([out1, out2, out3, out4],dim=1)
         out = self.bn2(out)
