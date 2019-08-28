@@ -309,7 +309,30 @@ class Bottleneck(nn.Module):
                 groups=num_groups,
                 dilation=dilation
             )
-            nn.init.kaiming_uniform_(self.conv2.weight, a=1)
+
+            self.conv2_1 = Conv2d(
+                bottleneck_channels,
+                bottleneck_channels,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation
+            )
+
+            self.conv2_2 = Conv2d(
+                bottleneck_channels,
+                bottleneck_channels,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation
+            )
+
+            #nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
         self.bn2 = norm_func(bottleneck_channels)
 
@@ -318,7 +341,7 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv3,]:
+        for l in [self.conv1, self.conv2, self.conv2_1, self.conv2_2, self.conv3,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
@@ -328,9 +351,22 @@ class Bottleneck(nn.Module):
         out = self.bn1(out)
         out = F.relu_(out)
 
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = F.relu_(out)
+        out1 = self.conv2(out)
+        out2 = self.conv2_1(out1)
+        out3 = self.conv2_2(out2)
+
+        out1 = F.relu_(self.bn2(out1))
+        out2 = F.relu_(self.bn2(out2))
+        out3 = F.relu_(self.bn2(out3))
+
+        w1 = out1.max(2)[0].unsqueeze(2) / out1.max()
+        w2 = out2.max(2)[0].unsqueeze(2) / out2.max()
+        w3 = out3.max(2)[0].unsqueeze(2) / out3.max()
+        h1 = out1.max(3)[0].unsqueeze(3) / out1.max()
+        h2 = out2.max(3)[0].unsqueeze(3) / out2.max()
+        h3 = out3.max(3)[0].unsqueeze(3) / out3.max()
+
+        out = out1*w1 + out1*h1 + out2*w2 + out2*h2 + out3*w3 + out3*h3
 
         out = self.conv3(out)
         out = self.bn3(out)
