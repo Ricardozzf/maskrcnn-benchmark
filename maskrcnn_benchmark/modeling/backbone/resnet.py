@@ -363,8 +363,8 @@ class Bottleneck(nn.Module):
         conv2_w2 = F.conv2d(conv2_w2, conv2_w, padding=2, groups=c_in)
         conv2_w3 = F.conv2d(conv2_w2, conv2_w, padding=2, groups=c_in)
         
-        conv2_w2 = conv2_w2.view(c_out, c_in, 3, 3)
-        conv2_w3 = conv2_w3.view(c_out, c_in, 3, 3)
+        conv2_w2 = conv2_w2.view(c_out, c_in, 5, 5)
+        conv2_w3 = conv2_w3.view(c_out, c_in, 7, 7)
 
 
         out = self.conv1(x)
@@ -374,7 +374,7 @@ class Bottleneck(nn.Module):
         out1 = self.conv2(out)
         out2 = F.conv2d(out, conv2_w2, bias=False, padding=1)
         out3 = F.conv2d(out, conv2_w3, bias=False, padding=1)
-        
+
         out1 = F.relu_(self.bn2(out1))
         out2 = F.relu_(self.bn2_1(out2))
         out3 = F.relu_(self.bn2_2(out3))
