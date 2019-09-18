@@ -314,7 +314,7 @@ class Bottleneck(nn.Module):
                 groups=num_groups,
                 dilation=dilation
             )
-            '''
+
             self.conv2_1 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
@@ -336,7 +336,7 @@ class Bottleneck(nn.Module):
                 groups=num_groups,
                 dilation=dilation
             )
-            '''
+            
             #nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
         self.bn2 = norm_func(bottleneck_channels)
@@ -348,12 +348,13 @@ class Bottleneck(nn.Module):
         )
         self.bn3 = norm_func(out_channels)
 
-        for l in [self.conv1, self.conv2, self.conv3,]:
+        for l in [self.conv1, self.conv2, self.conv2_1, self.conv2_2, self.conv3,]:
             nn.init.kaiming_uniform_(l.weight, a=1)
 
     def forward(self, x):
         identity = x
 
+        '''
         conv2_w = self.conv2.weight
         c_in = conv2_w.shape[1]
         c_out = conv2_w.shape[0]
@@ -365,16 +366,19 @@ class Bottleneck(nn.Module):
         
         conv2_w2 = conv2_w2.view(c_out, c_in, 5, 5)
         conv2_w3 = conv2_w3.view(c_out, c_in, 7, 7)
-
+        '''
 
         out = self.conv1(x)
         out = self.bn1(out)
         out = F.relu_(out)
-
+        '''
         out1 = self.conv2(out)
         out2 = F.conv2d(out, conv2_w2, bias=False, padding=1)
         out3 = F.conv2d(out, conv2_w3, bias=False, padding=1)
-
+        '''
+        out1 = self.conv2(out)
+        out2 = self.conv2_1(out1)
+        out3 = self.conv2_2(out2)
         out1 = F.relu_(self.bn2(out1))
         out2 = F.relu_(self.bn2_1(out2))
         out3 = F.relu_(self.bn2_2(out3))
