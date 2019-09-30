@@ -377,10 +377,12 @@ class Bottleneck(nn.Module):
         out3 = F.conv2d(out, conv2_w3, bias=False, padding=1)
         '''
         out1 = self.conv2(out)
-        out2 = self.conv2_1(out1)
-        out3 = self.conv2_2(out2)
         out1 = F.relu_(self.bn2(out1))
+
+        out2 = self.conv2_1(out1)
         out2 = F.relu_(self.bn2_1(out2))
+
+        out3 = self.conv2_2(out2)
         out3 = F.relu_(self.bn2_2(out3))
 
         w1 = out1.max(2)[0].unsqueeze(2) / out1.max()
