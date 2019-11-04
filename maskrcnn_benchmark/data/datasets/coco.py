@@ -5,6 +5,11 @@ import torchvision
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 from maskrcnn_benchmark.structures.keypoint import PersonKeypoints
+from instaboost import get_new_data, InstaBoostConfig
+import cv2
+import numpy as np
+from PIL import ImageFile, Image
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 min_keypoints_per_image = 10
@@ -71,6 +76,13 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         # filter crowd annotations
         # TODO might be better to add an extra field
         anno = [obj for obj in anno if obj["iscrowd"] == 0]
+        
+        aug_flag = np.random.choice([0,1],p=[0.5,0.5])
+        
+        if  aug_flag:
+            img = cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+            anno, img = get_new_data(anno, img, None, background=None)
+            img = Image.fromarray(cv2.cvtColor(np.asarray(img), cv2.COLOR_BGR2RGB))           
 
         boxes = [obj["bbox"] for obj in anno]
         boxes = torch.as_tensor(boxes).reshape(-1, 4)  # guard against no boxes

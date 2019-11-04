@@ -317,6 +317,7 @@ def evaluate_predictions_on_coco(
 
     # coco_dt = coco_gt.loadRes(coco_results)
     coco_eval = COCOeval(coco_gt, coco_dt, iou_type)
+    #coco_eval.params.catIds = [27]
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
