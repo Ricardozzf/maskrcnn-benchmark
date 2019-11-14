@@ -16,7 +16,8 @@ from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
-from maskrcnn_benchmark.engine.plotMaps import plot
+from maskrcnn_benchmark.engine.plotMap import plot
+from maskrcnn_benchmark.utils.comm import is_main_process
 
 def inf(args, cfg):
 
@@ -69,17 +70,18 @@ def inf(args, cfg):
             expected_results=cfg.TEST.EXPECTED_RESULTS,
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
             output_folder=output_folder,
-        )[0].results['bbox']
-
-        output_tuple[dataset_name] = {}
-        output_tuple[dataset_name]['AP'] = r['AP'].item()
-        output_tuple[dataset_name]['AP50'] = r['AP50'].item()
+        )
+        if is_main_process():
+            r = r[0].results['bbox']
+            output_tuple[dataset_name] = {}
+            output_tuple[dataset_name]['AP'] = r['AP'].item()
+            output_tuple[dataset_name]['AP50'] = r['AP50'].item()
 
         synchronize()
     return output_tuple
 
 def recordResults(args, cfg):
-    homeDir = "/datagithub/maskrcnn-benchmark"
+    homeDir = "/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark"
     model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
     output = {}
     for path in model_paths:
