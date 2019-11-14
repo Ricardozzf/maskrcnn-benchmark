@@ -24,7 +24,7 @@ def inf(args, cfg):
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     distributed = num_gpus > 1
 
-    if distributed:
+    if distributed and not torch.distributed.is_initialized():
         torch.cuda.set_device(args.local_rank)
         torch.distributed.init_process_group(
             backend="nccl", init_method="env://"
@@ -72,9 +72,7 @@ def inf(args, cfg):
         )
         if is_main_process():
             r = r[0].results['bbox']
-            output_tuple[dataset_name] = {}
-            output_tuple[dataset_name]['AP'] = r['AP'].item()
-            output_tuple[dataset_name]['AP50'] = r['AP50'].item()
+            output_tuple[dataset_name] = r['AP'].item()
 
         synchronize()
     return output_tuple
