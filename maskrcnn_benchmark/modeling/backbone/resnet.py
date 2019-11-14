@@ -314,7 +314,7 @@ class Bottleneck(nn.Module):
                 groups=num_groups,
                 dilation=dilation
             )
-            '''
+            
             self.conv2_1 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
@@ -322,10 +322,10 @@ class Bottleneck(nn.Module):
                 stride=stride_3x3,
                 padding=dilation,
                 bias=False,
-                groups=num_groups,
+                groups=bottleneck_channels,
                 dilation=dilation
             )
-
+            '''
             self.conv2_2 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
@@ -340,7 +340,7 @@ class Bottleneck(nn.Module):
             #nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
         self.bn2 = norm_func(bottleneck_channels)
-        #self.bn2_1 = norm_func(bottleneck_channels)
+        #self.bn2_1 = norm_func(out_channels)
         #self.bn2_2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
@@ -376,8 +376,16 @@ class Bottleneck(nn.Module):
         out2 = F.conv2d(out, conv2_w2, bias=False, padding=1)
         out3 = F.conv2d(out, conv2_w3, bias=False, padding=1)
         '''
+        
+        #w1 = out.max(2)[0].unsqueeze(2) / out.max()
+        #h1 = out.max(3)[0].unsqueeze(3) / out.max()       
+
         out = self.conv2(out)
         out = F.relu_(self.bn2(out))
+
+        att = self.conv2_1(out)
+        w1 = F.sigmoid(att.max(2)[0].unsqueeze(2))
+        h1 = F.sigmoid(att.max(3)[0].unsqueeze(3))
 
         #out2 = self.conv2_1(out1)
         #out2 = F.relu_(self.bn2_1(out2))
@@ -392,24 +400,25 @@ class Bottleneck(nn.Module):
         #h2 = out2.max(3)[0].unsqueeze(3) / out2.max()
         #h3 = out3.max(3)[0].unsqueeze(3) / out3.max()
 
-        #out = out1*w1 + out1*h1 + out2*w2 + out2*h2 + out3*w3 + out3*h3
+        out = out*w1 + out*h1
 
         out = self.conv3(out)
         out = self.bn3(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
-        n_max = torch.max(out.max(), identity.max())
-        w1 = out.max(2)[0].unsqueeze(2)
-        h1 = out.max(3)[0].unsqueeze(3)
+        #identity = self.bn2_1(identity)
+        #n_max1 = out.max()
+        #n_max2 = identity.max()
+        #w1 = out.max(2)[0].unsqueeze(2) / n_max1
+        #h1 = out.max(3)[0].unsqueeze(3) / n_max1
+        #w2 = identity.max(2)[0].unsqueeze(2) / n_max2
+        #h2 = identity.max(3)[0].unsqueeze(3) / n_max2
 
-        w2 = identity.max(2)[0].unsqueeze(2)
-        h2 = identity.max(3)[0].unsqueeze(3)
-
-        out = out*w1 + out*h1 + identity*w2 + identity*h2
+        #out = out*w1/2 + out*h1/2 + identity
 
 
-        #out += identity
+        out += identity
         out = F.relu_(out)
 
         return out
