@@ -35,3 +35,17 @@ dist/
 /datasets
 /models
 /output
+
+# save model dirs
+Resnet*
+Sensing*
+Wider*
+Rep*
+retina*
+conv*
+deconv*
+iou*
+log*
+No*
+
+ *.txt
