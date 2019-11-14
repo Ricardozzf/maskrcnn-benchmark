@@ -69,7 +69,6 @@ def inf(args, cfg):
             device=cfg.MODEL.DEVICE,
             expected_results=cfg.TEST.EXPECTED_RESULTS,
             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-            output_folder=output_folder,
         )
         if is_main_process():
             r = r[0].results['bbox']
@@ -97,7 +96,7 @@ def recordResults(args, cfg):
 
 def get_model_paths(directory):
     onlyfiles = [f for f in listdir(directory) if isfile(join(directory, f))]
-    return [join(directory, file) for file in onlyfiles if ".pth" in file]
+    return [join(directory, file) for file in onlyfiles if "model_" in file]
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
