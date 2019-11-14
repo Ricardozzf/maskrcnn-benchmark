@@ -2,7 +2,6 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 
 import argparse
 import os, pickle, sys
-print(sys.path)
 
 from os import listdir
 from os.path import isfile, join
@@ -38,7 +37,7 @@ def inf(args, cfg):
 
     logger.info("Collecting env info (might take some time)")
     logger.info("\n" + collect_env_info())
-    print(cfg.MODEL.WEIGHT)
+    #print(cfg.MODEL.WEIGHT)
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
 
@@ -51,7 +50,7 @@ def inf(args, cfg):
         iou_types = iou_types + ("segm",)
     output_folders = [None] * len(cfg.DATASETS.TEST) 
     dataset_names = cfg.DATASETS.TEST
-    print("Dataset Names", dataset_names)
+    #print("Dataset Names", dataset_names)
     if cfg.OUTPUT_DIR:
         for idx, dataset_name in enumerate(dataset_names):
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
@@ -81,7 +80,7 @@ def inf(args, cfg):
 
 def recordResults(args, cfg):
     homeDir = "/datagithub/maskrcnn-benchmark"
-    model_paths = [cfg.MODEL.WEIGHT] + get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
+    model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
     output = {}
     for path in model_paths:
         cfg.MODEL.WEIGHT = path
@@ -102,7 +101,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/home/nprasad/Documents/github/maskrcnn-benchmark/configs/heads.yaml",
+        default="/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark",
         metavar="FILE",
         help="path to config file",
     )
