@@ -46,6 +46,8 @@ conv*
 deconv*
 iou*
 log*
+Res2*
 No*
+Conv*
 
  *.txt
