@@ -4,6 +4,7 @@ from .coco import coco_evaluation
 from .voc import voc_evaluation
 from .sensing import sensing_evaluation
 
+from .cityscapes import abs_cityscapes_evaluation
 
 def evaluate(dataset, predictions, output_folder, **kwargs):
     """evaluate dataset using different methods based on dataset type.
@@ -25,6 +26,8 @@ def evaluate(dataset, predictions, output_folder, **kwargs):
         return voc_evaluation(**args)
     elif isinstance(dataset, datasets.SensingDataset):
         return sensing_evaluation(**args)
+    elif isinstance(dataset, datasets.AbstractDataset):
+        return abs_cityscapes_evaluation(**args)
     else:
         dataset_name = dataset.__class__.__name__
         raise NotImplementedError("Unsupported dataset type {}.".format(dataset_name))
