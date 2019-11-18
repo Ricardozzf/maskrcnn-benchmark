@@ -19,6 +19,8 @@ from maskrcnn_benchmark.utils.miscellaneous import mkdir
 from maskrcnn_benchmark.engine.plotMap import plot
 from maskrcnn_benchmark.utils.comm import is_main_process
 
+import re
+
 def inf(args, cfg):
 
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
@@ -78,8 +80,9 @@ def inf(args, cfg):
     return output_tuple
 
 def recordResults(args, cfg):
-    homeDir = "/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark"
+    homeDir = "/home/zouzhaofan/Work/Github/maskrcnn-benchmark"
     model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
+    model_paths = filter_model(model_paths, 1000)
     output = {}
     for path in model_paths:
         cfg.MODEL.WEIGHT = path
@@ -94,13 +97,16 @@ def recordResults(args, cfg):
 
 def get_model_paths(directory):
     onlyfiles = [f for f in listdir(directory) if isfile(join(directory, f))]
-    return [join(directory, file) for file in onlyfiles if "model_" in file]
+    return [join(directory, file) for file in onlyfiles if "model_0" in file]
+
+def filter_model(modelist, iteration):
+    return [model for model in modelist if int(re.split("_|\.",model)[1])%1000==0]
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark",
+        default="/home/zouzhaofan/Work/Github/maskrcnn-benchmark",
         metavar="FILE",
         help="path to config file",
     )

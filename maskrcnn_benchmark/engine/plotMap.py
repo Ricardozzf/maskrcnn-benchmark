@@ -13,4 +13,4 @@ def plot(dicmAP, cfg):
 
 if __name__ == "__main__":
     dic = {1:50,2:30,3:90}
-    plot(dic,cfg)
+    plot(dic, cfg)
