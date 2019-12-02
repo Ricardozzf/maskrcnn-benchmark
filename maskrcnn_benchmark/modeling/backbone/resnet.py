@@ -311,7 +311,7 @@ class Bottleneck(nn.Module):
                 stride=stride_3x3,
                 padding=dilation,
                 bias=False,
-                groups=num_groups,
+                groups=4,
                 dilation=dilation
             )
             
@@ -322,10 +322,10 @@ class Bottleneck(nn.Module):
                 stride=stride_3x3,
                 padding=dilation,
                 bias=False,
-                groups=bottleneck_channels,
+                groups=4,
                 dilation=dilation
             )
-            '''
+            
             self.conv2_2 = Conv2d(
                 bottleneck_channels,
                 bottleneck_channels,
@@ -333,15 +333,26 @@ class Bottleneck(nn.Module):
                 stride=stride_3x3,
                 padding=dilation,
                 bias=False,
-                groups=num_groups,
+                groups=4,
                 dilation=dilation
             )
-            '''
+
+            self.conv2_f = Conv2d(
+                bottleneck_channels*3,
+                bottleneck_channels,
+                kernel_size=3,
+                stride=stride_3x3,
+                padding=dilation,
+                bias=False,
+                groups=bottleneck_channels,
+                dilation=dilation
+            )
+            
             #nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
         self.bn2 = norm_func(bottleneck_channels)
-        #self.bn2_1 = norm_func(out_channels)
-        #self.bn2_2 = norm_func(bottleneck_channels)
+        self.bn2_1 = norm_func(out_channels)
+        self.bn2_2 = norm_func(bottleneck_channels)
 
         self.conv3 = Conv2d(
             bottleneck_channels, out_channels, kernel_size=1, bias=False
@@ -353,6 +364,7 @@ class Bottleneck(nn.Module):
 
     def forward(self, x):
         identity = x
+        b,c,h,w= x.shape 
 
         '''
         conv2_w = self.conv2.weight
@@ -380,18 +392,18 @@ class Bottleneck(nn.Module):
         #w1 = out.max(2)[0].unsqueeze(2) / out.max()
         #h1 = out.max(3)[0].unsqueeze(3) / out.max()       
 
-        out = self.conv2(out)
-        out = F.relu_(self.bn2(out))
-
+        out1 = self.conv2(out)
+        out1 = F.relu_(self.bn2(out1))
+        '''
         att = self.conv2_1(out)
         w1 = F.sigmoid(att.max(2)[0].unsqueeze(2))
         h1 = F.sigmoid(att.max(3)[0].unsqueeze(3))
+        '''
+        out2 = self.conv2_1(out1)
+        out2 = F.relu_(self.bn2_1(out2))
 
-        #out2 = self.conv2_1(out1)
-        #out2 = F.relu_(self.bn2_1(out2))
-
-        #out3 = self.conv2_2(out2)
-        #out3 = F.relu_(self.bn2_2(out3))
+        out3 = self.conv2_2(out2)
+        out3 = F.relu_(self.bn2_2(out3))
 
         #w1 = out1.max(2)[0].unsqueeze(2) / out1.max()
         #w2 = out2.max(2)[0].unsqueeze(2) / out2.max()
@@ -400,7 +412,13 @@ class Bottleneck(nn.Module):
         #h2 = out2.max(3)[0].unsqueeze(3) / out2.max()
         #h3 = out3.max(3)[0].unsqueeze(3) / out3.max()
 
-        out = out*w1 + out*h1
+        out1 = out1.view(b, c, 1, h, w)
+        out2 = out2.view(b, c, 1, h, w)
+        out3 = out3.view(b, c, 1, h, w)
+
+        out = torch.cat([out1, out2, out3], 2)
+        out = out.view(b, c*3, h, w)
+        out = self.conv2_f(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
