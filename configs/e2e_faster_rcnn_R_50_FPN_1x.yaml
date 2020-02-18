@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+ # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:
@@ -22,7 +22,8 @@ MODEL:
     PREDICTOR: "FPNPredictor"
 DATASETS:
   TRAIN: ("coco_2014_train", "coco_2014_valminusminival")
-  TEST: ("coco_2014_minival",)
+  #TEST: ("coco_2014_minival",)
+  TEST: ("coco_2014_train", "coco_2014_valminusminival")
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:

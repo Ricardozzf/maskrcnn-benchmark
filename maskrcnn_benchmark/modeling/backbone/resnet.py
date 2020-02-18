@@ -337,7 +337,7 @@ class Bottleneck(nn.Module):
                 groups=4,
                 dilation=dilation
             )
-
+            
             self.conv2_f = Conv2d(
                 bottleneck_channels*3,
                 bottleneck_channels*3,
@@ -348,7 +348,7 @@ class Bottleneck(nn.Module):
                 groups=bottleneck_channels,
                 dilation=dilation
             )
-
+            
             self.conv2_f1 = Conv2d(
                 bottleneck_channels*3,
                 bottleneck_channels,
@@ -356,7 +356,7 @@ class Bottleneck(nn.Module):
                 bias=False,
                 groups=bottleneck_channels,
             )
-            
+             
             #nn.init.kaiming_uniform_(self.conv2.weight, a=1)
 
         self.bn2 = norm_func(bottleneck_channels)
@@ -420,7 +420,7 @@ class Bottleneck(nn.Module):
         #h1 = out1.max(3)[0].unsqueeze(3) / out1.max()
         #h2 = out2.max(3)[0].unsqueeze(3) / out2.max()
         #h3 = out3.max(3)[0].unsqueeze(3) / out3.max()
-
+        
         out1 = out1.view(b, c, 1, h, w)
         out2 = out2.view(b, c, 1, h, w)
         out3 = out3.view(b, c, 1, h, w)
@@ -429,7 +429,9 @@ class Bottleneck(nn.Module):
         out = out.view(b, c*3, h, w)
         out = self.conv2_f(out)
         out = self.conv2_f1(out)
-
+        
+        #out = out1 + out2
+        
         out = self.conv3(out)
         out = self.bn3(out)
 

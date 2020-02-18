@@ -4,6 +4,10 @@ import pandas as pd
 import os
 
 def plot(dicmAP, cfg):
+    if not dicmAP:
+        return
+    dicmAP = sorted(dicmAP.items(), key=lambda item:item[0])
+    dicmAP = dict(dicmAP)
     mAPSeries = pd.Series(dicmAP)
     mAPSeries.plot()
     plt.grid(True, linestyle = "--",color = "gray", linewidth = "0.5",axis = 'both')

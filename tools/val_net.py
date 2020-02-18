@@ -19,7 +19,13 @@ from maskrcnn_benchmark.utils.miscellaneous import mkdir
 from maskrcnn_benchmark.engine.plotMap import plot
 from maskrcnn_benchmark.utils.comm import is_main_process
 
+import re
+
 def inf(args, cfg):
+
+    homeDir = "/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark"
+    model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
+    model_paths = filter_model(model_paths, 1000)
 
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     distributed = num_gpus > 1
@@ -44,7 +50,7 @@ def inf(args, cfg):
 
     output_dir = cfg.OUTPUT_DIR
     checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
-    _ = checkpointer.load(cfg.MODEL.WEIGHT)
+    #_ = checkpointer.load(cfg.MODEL.WEIGHT)
 
     iou_types = ("bbox",)
     if cfg.MODEL.MASK_ON:
@@ -59,48 +65,48 @@ def inf(args, cfg):
             output_folders[idx] = output_folder
     data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
     output_tuple = {}
-    for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
-        r = inference(
-            model,
-            data_loader_val,
-            dataset_name=dataset_name,
-            iou_types=iou_types,
-            box_only=cfg.MODEL.RPN_ONLY,
-            device=cfg.MODEL.DEVICE,
-            expected_results=cfg.TEST.EXPECTED_RESULTS,
-            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-        )
-        if is_main_process():
-            r = r[0].results['bbox']
-            output_tuple[dataset_name] = r['AP'].item()
+    
+    #model_paths = [model_paths[i:i+num_gpus] for i in range(0,len(model_paths),num_gpus)]
+    #model_paths = model_paths[get_rank()]
+    
+    for modelfile in model_paths:
+        itr = int(re.split("model_|\.", modelfile)[1])
+        _ = checkpointer.load(modelfile, False)
+        
+        for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
+            r = inference(
+                model,
+                data_loader_val,
+                dataset_name=dataset_name,
+                iou_types=iou_types,
+                box_only=cfg.MODEL.RPN_ONLY,
+                device=cfg.MODEL.DEVICE,
+                expected_results=cfg.TEST.EXPECTED_RESULTS,
+                expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+            )
+            if is_main_process() or not distributed:
+                r = r[0].results['bbox']
+                output_tuple[itr] = r['AP'].item()
 
-        synchronize()
+            synchronize()
     return output_tuple
 
 def recordResults(args, cfg):
-    homeDir = "/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark"
-    model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
-    output = {}
-    for path in model_paths:
-        cfg.MODEL.WEIGHT = path
-        if "final" in path:
-            ite = cfg.SOLVER.MAX_ITER
-        elif "no" in path:
-            ite = 0
-        else:
-            ite = int(path.split("_")[1].split(".")[0])
-        output[ite] = inf(args, cfg)
+    output = inf(args, cfg)
     plot(output, cfg)
 
 def get_model_paths(directory):
     onlyfiles = [f for f in listdir(directory) if isfile(join(directory, f))]
-    return [join(directory, file) for file in onlyfiles if "model_" in file]
+    return [join(directory, file) for file in onlyfiles if "model_0" in file]
+
+def filter_model(modelist, iteration):
+    return [model for model in modelist if "model_0" in model and int(re.split("model_|\.",model)[1])%2500==0]
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/data/home/yujingai/shixisheng/zzf/Github/My-maskrcnn-benchmark/maskrcnn-benchmark",
+        default="/home/zouzhaofan/Work/Github/maskrcnn-benchmark",
         metavar="FILE",
         help="path to config file",
     )
