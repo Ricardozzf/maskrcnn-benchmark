@@ -6,7 +6,7 @@ import os, pickle, sys
 from os import listdir
 from os.path import isfile, join
 
-import torch
+import torc
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.engine.inference import inference
@@ -92,7 +92,19 @@ def inf(args, cfg):
     return output_tuple
 
 def recordResults(args, cfg):
-    output = inf(args, cfg)
+    homeDir = "/home/zouzhaofan/Work/Github/maskrcnn-benchmark"
+    model_paths = get_model_paths(join(homeDir, cfg.OUTPUT_DIR))
+    model_paths = filter_model(model_paths, 1000)
+    output = {}
+    for path in model_paths:
+        cfg.MODEL.WEIGHT = path
+        if "final" in path:
+            ite = cfg.SOLVER.MAX_ITER
+        elif "no" in path:
+            ite = 0
+        else:
+            ite = int(path.split("_")[1].split(".")[0])
+        output[ite] = inf(args, cfg)
     plot(output, cfg)
 
 def get_model_paths(directory):
@@ -100,7 +112,7 @@ def get_model_paths(directory):
     return [join(directory, file) for file in onlyfiles if "model_0" in file]
 
 def filter_model(modelist, iteration):
-    return [model for model in modelist if "model_0" in model and int(re.split("model_|\.",model)[1])%2500==0]
+    return [model for model in modelist if int(re.split("_|\.",model)[1])%1000==0]
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")

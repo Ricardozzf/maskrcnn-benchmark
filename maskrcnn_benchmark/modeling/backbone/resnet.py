@@ -337,6 +337,7 @@ class Bottleneck(nn.Module):
                 groups=4,
                 dilation=dilation
             )
+
             
             self.conv2_f = Conv2d(
                 bottleneck_channels*3,
@@ -349,6 +350,7 @@ class Bottleneck(nn.Module):
                 dilation=dilation
             )
             
+
             self.conv2_f1 = Conv2d(
                 bottleneck_channels*3,
                 bottleneck_channels,
@@ -373,6 +375,7 @@ class Bottleneck(nn.Module):
 
     def forward(self, x):
         identity = x
+        b,c,h,w= x.shape 
 
         '''
         conv2_w = self.conv2.weight
@@ -399,7 +402,6 @@ class Bottleneck(nn.Module):
         
         #w1 = out.max(2)[0].unsqueeze(2) / out.max()
         #h1 = out.max(3)[0].unsqueeze(3) / out.max()
-        b,c,h,w = out.shape     
 
         out1 = self.conv2(out)
         out1 = F.relu_(self.bn2(out1))
@@ -420,7 +422,7 @@ class Bottleneck(nn.Module):
         #h1 = out1.max(3)[0].unsqueeze(3) / out1.max()
         #h2 = out2.max(3)[0].unsqueeze(3) / out2.max()
         #h3 = out3.max(3)[0].unsqueeze(3) / out3.max()
-        
+
         out1 = out1.view(b, c, 1, h, w)
         out2 = out2.view(b, c, 1, h, w)
         out3 = out3.view(b, c, 1, h, w)
@@ -432,6 +434,7 @@ class Bottleneck(nn.Module):
         
         #out = out1 + out2
         
+
         out = self.conv3(out)
         out = self.bn3(out)
 
