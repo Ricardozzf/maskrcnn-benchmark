@@ -375,7 +375,6 @@ class Bottleneck(nn.Module):
 
     def forward(self, x):
         identity = x
-        b,c,h,w= x.shape 
 
         '''
         conv2_w = self.conv2.weight
@@ -402,7 +401,7 @@ class Bottleneck(nn.Module):
         
         #w1 = out.max(2)[0].unsqueeze(2) / out.max()
         #h1 = out.max(3)[0].unsqueeze(3) / out.max()
-
+        b,c,h,w = out.shape
         out1 = self.conv2(out)
         out1 = F.relu_(self.bn2(out1))
         '''
