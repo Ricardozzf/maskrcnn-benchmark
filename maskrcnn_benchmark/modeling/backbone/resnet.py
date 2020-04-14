@@ -158,8 +158,9 @@ class ResNet(nn.Module):
             x = getattr(self, stage_name)(x)
             if self.return_features[stage_name]:
                 outputs.append(x)
-            stage_name_gap = stage_name + "_gap"
-            x = getattr(self, stage_name_gap)(x)
+            if stage_name != self.stages[-1]:
+                stage_name_gap = stage_name + "_gap"
+                x = getattr(self, stage_name_gap)(x)
         return outputs
 
 
