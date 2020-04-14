@@ -128,6 +128,15 @@ class ResNet(nn.Module):
             self.stages.append(name)
             self.return_features[name] = stage_spec.return_features
 
+            # FPN gap
+            if stage_spec != stage_specs[-1]:
+                name_gap = name + "_gap"
+                module_gap = _make_stage_gap(in_channels,
+                                            out_channels,
+                                            2,
+                                            num_groups)
+                self.add_module(name_gap, module_gap)
+
         # Optionally freeze (requires_grad=False) parts of the backbone
         self._freeze_backbone(cfg.MODEL.BACKBONE.FREEZE_CONV_BODY_AT)
 
@@ -149,6 +158,8 @@ class ResNet(nn.Module):
             x = getattr(self, stage_name)(x)
             if self.return_features[stage_name]:
                 outputs.append(x)
+            stage_name_gap = stage_name + "_gap"
+            x = getattr(self, stage_name_gap)(x)
         return outputs
 
 
@@ -235,6 +246,24 @@ def _make_stage(
         in_channels = out_channels
     return nn.Sequential(*blocks)
 
+
+def _make_stage_gap(
+    in_channels,
+    out_channels,
+    block_count,
+    num_groups,
+    dilation=1,
+):
+
+    blocks = []
+    for _ in range(block_count):
+        blocks.append(
+            Conv2d(in_channels, out_channels,
+                    kernel_size=3, stride=1, bias=False)
+        )
+    for l in blocks:
+        nn.init.kaiming_uniform_(l.weight, a=1)
+    return nn.Sequential(*blocks)
 
 class Bottleneck(nn.Module):
     def __init__(
