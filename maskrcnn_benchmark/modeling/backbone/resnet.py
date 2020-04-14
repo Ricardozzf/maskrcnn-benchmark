@@ -260,7 +260,10 @@ def _make_stage_gap(
     for _ in range(block_count):
         blocks.append(
             Conv2d(in_channels, out_channels,
-                    kernel_size=3, stride=1, bias=False)
+                kernel_size=3, stride=1, padding=dilation,
+                bias=False,
+                groups=num_groups,
+                dilation=dilation)
         )
     for l in blocks:
         nn.init.kaiming_uniform_(l.weight, a=1)
