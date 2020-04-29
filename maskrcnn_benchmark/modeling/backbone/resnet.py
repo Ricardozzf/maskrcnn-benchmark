@@ -131,10 +131,14 @@ class ResNet(nn.Module):
             # FPN gap
             if stage_spec != stage_specs[-1]:
                 name_gap = name + "_gap"
-                module_gap = _make_stage_gap(in_channels,
-                                            out_channels,
-                                            2,
-                                            num_groups)
+                module_gap = _make_stage(transformation_module,
+                                        in_channels,
+                                        bottleneck_channels,
+                                        out_channels,
+                                        1,
+                                        num_groups,
+                                        cfg.MODEL.RESNETS.STRIDE_IN_1X1,
+                                        first_stride=1)
                 self.add_module(name_gap, module_gap)
 
         # Optionally freeze (requires_grad=False) parts of the backbone
