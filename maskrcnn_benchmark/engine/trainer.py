@@ -15,6 +15,8 @@ from maskrcnn_benchmark.engine.inference import inference
 
 from apex import amp
 
+from tensorboardX import SummaryWriter 
+
 def reduce_loss_dict(loss_dict):
     """
     Reduce the loss dictionary from all processes so that process with rank
@@ -61,7 +63,7 @@ def do_train(
     model.train()
     start_training_time = time.time()
     end = time.time()
-    #writer = SummaryWriter('log')
+    writer = SummaryWriter('log')
 
     iou_types = ("bbox",)
     if cfg.MODEL.MASK_ON:
@@ -124,14 +126,14 @@ def do_train(
                     memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
                 )
             )
-            if iteration / 20 != 0:
-                '''
+            if iteration / 100 != 0:
+                
                 writer.add_scalar('loss_rpn_box_reg/iter', meters.meters['loss_rpn_box_reg'].avg, iteration)
                 writer.add_scalar('loss_objectness/iter', meters.meters['loss_objectness'].avg, iteration)
                 writer.add_scalar('loss_box_reg/iter', meters.meters['loss_box_reg'].avg, iteration)
                 writer.add_scalar('loss_classifier/iter', meters.meters['loss_classifier'].avg, iteration)
                 writer.add_scalar('loss/iter', meters.meters['loss'].avg, iteration)
-                '''
+                
 
         if iteration % checkpoint_period == 0:
             checkpointer.save("model_{:07d}".format(iteration), **arguments)
