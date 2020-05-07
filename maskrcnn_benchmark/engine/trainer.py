@@ -15,6 +15,9 @@ from maskrcnn_benchmark.engine.inference import inference
 
 from apex import amp
 
+import cv2
+import numpy as np
+
 def reduce_loss_dict(loss_dict):
     """
     Reduce the loss dictionary from all processes so that process with rank
@@ -78,6 +81,26 @@ def do_train(
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
+        '''
+        #import pdb; pdb.set_trace()
+        im = images.tensors[0,:,:,:]
+        im = im.permute(1,2,0).numpy().astype(np.int8)
+        bbox = targets[0].bbox[0].numpy()
+        
+        x1 = int(bbox[0])
+        y1 = int(bbox[1])
+        x2 = int(bbox[2])
+        y2 = int(bbox[3])
+        w = int(bbox[4])
+        h = int(bbox[5])
+        import pdb; pdb.set_trace()
+        im = cv2.UMat(im).get()
+        im = cv2.rectangle(im, (x1,y1), (x2,y2), (255,0,0), 2)
+        im = cv2.rectangle(im, (x1, y1), (x1+w,y1+h),(0,0,255),2)
+    
+        cv2.imshow("test", im)
+        cv2.waitKey()
+        '''
 
         images = images.to(device)
         targets = [target.to(device) for target in targets]

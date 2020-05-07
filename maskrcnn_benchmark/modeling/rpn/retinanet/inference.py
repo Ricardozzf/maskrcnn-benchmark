@@ -62,18 +62,18 @@ class RetinaNetPostProcessor(RPNPostProcessor):
         Arguments:
             anchors: list[BoxList]
             box_cls: tensor of size N, A * C, H, W
-            box_regression: tensor of size N, A * 4, H, W
+            box_regression: tensor of size N, A * 6, H, W
         """
         device = box_cls.device
         N, _, H, W = box_cls.shape
-        A = box_regression.size(1) // 4
+        A = box_regression.size(1) // 6
         C = box_cls.size(1) // A
 
         # put in the same format as anchors
         box_cls = permute_and_flatten(box_cls, N, A, C, H, W)
         box_cls = box_cls.sigmoid()
 
-        box_regression = permute_and_flatten(box_regression, N, A, 4, H, W)
+        box_regression = permute_and_flatten(box_regression, N, A, 6, H, W)
 
         num_anchors = A * H * W
 
@@ -110,7 +110,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
             per_class += 1
 
             detections = self.box_coder.decode(
-                per_box_regression[per_box_loc, :].view(-1, 4),
+                per_box_regression[per_box_loc, :].view(-1, 6),
                 per_anchors.bbox[per_box_loc, :].view(-1, 4)
             )
 

@@ -31,19 +31,20 @@ MODEL:
     FG_IOU_THRESHOLD: 0.5
     BG_IOU_THRESHOLD: 0.4
 DATASETS:
-  TRAIN: ("coco_2014_train", "coco_2014_valminusminival")
-  TEST: ("coco_2014_minival",)
+  TRAIN: ("Crowdhuman_coco_train", )
+  TEST: ("Crowdhuman_coco_val",)
 INPUT:
-  MIN_SIZE_TRAIN: (800,)
-  MAX_SIZE_TRAIN: 1333
-  MIN_SIZE_TEST: 800
-  MAX_SIZE_TEST: 1333
+  MIN_SIZE_TRAIN: (600,)
+  MAX_SIZE_TRAIN: 1000
+  MIN_SIZE_TEST: 600
+  MAX_SIZE_TEST: 1000
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
   # Assume 4 gpus
-  BASE_LR: 0.005
+  BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001
   STEPS: (120000, 160000)
   MAX_ITER: 180000
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 2
+OUTPUT_DIR : "./retina-person"

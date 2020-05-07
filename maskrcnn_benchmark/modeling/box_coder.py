@@ -28,6 +28,8 @@ class BoxCoder(object):
             reference_boxes (Tensor): reference boxes
             proposals (Tensor): boxes to be encoded
         """
+        if reference_boxes.shape[1] != 6:
+            raise RuntimeError("gt bbox should be N×6 dims!")
 
         TO_REMOVE = 1  # TODO remove
         ex_widths = proposals[:, 2] - proposals[:, 0] + TO_REMOVE
@@ -39,14 +41,18 @@ class BoxCoder(object):
         gt_heights = reference_boxes[:, 3] - reference_boxes[:, 1] + TO_REMOVE
         gt_ctr_x = reference_boxes[:, 0] + 0.5 * gt_widths
         gt_ctr_y = reference_boxes[:, 1] + 0.5 * gt_heights
+        gt_v_w = reference_boxes[:, 4]
+        gt_v_h = reference_boxes[:, 5]
 
         wx, wy, ww, wh = self.weights
         targets_dx = wx * (gt_ctr_x - ex_ctr_x) / ex_widths
         targets_dy = wy * (gt_ctr_y - ex_ctr_y) / ex_heights
         targets_dw = ww * torch.log(gt_widths / ex_widths)
         targets_dh = wh * torch.log(gt_heights / ex_heights)
+        targets_vw = ww * torch.log(gt_v_w / ex_widths)
+        targets_vh = wh * torch.log(gt_v_h / ex_heights)
 
-        targets = torch.stack((targets_dx, targets_dy, targets_dw, targets_dh), dim=1)
+        targets = torch.stack((targets_dx, targets_dy, targets_dw, targets_dh, targets_vw, targets_vh), dim=1)
         return targets
 
     def decode(self, rel_codes, boxes):
@@ -68,28 +74,38 @@ class BoxCoder(object):
         ctr_y = boxes[:, 1] + 0.5 * heights
 
         wx, wy, ww, wh = self.weights
-        dx = rel_codes[:, 0::4] / wx
-        dy = rel_codes[:, 1::4] / wy
-        dw = rel_codes[:, 2::4] / ww
-        dh = rel_codes[:, 3::4] / wh
+        dx = rel_codes[:, 0::6] / wx
+        dy = rel_codes[:, 1::6] / wy
+        dw = rel_codes[:, 2::6] / ww
+        dh = rel_codes[:, 3::6] / wh
+        vw = rel_codes[:, 4::6] / ww
+        vh = rel_codes[:, 5::6] / wh
 
         # Prevent sending too large values into torch.exp()
         dw = torch.clamp(dw, max=self.bbox_xform_clip)
         dh = torch.clamp(dh, max=self.bbox_xform_clip)
+        vw = torch.clamp(vw, max=self.bbox_xform_clip)
+        vh = torch.clamp(vh, max=self.bbox_xform_clip)
 
         pred_ctr_x = dx * widths[:, None] + ctr_x[:, None]
         pred_ctr_y = dy * heights[:, None] + ctr_y[:, None]
         pred_w = torch.exp(dw) * widths[:, None]
         pred_h = torch.exp(dh) * heights[:, None]
+        pred_vw = torch.exp(vw) * widths[:, None]
+        pred_vh = torch.exp(vh) * heights[:, None]
 
         pred_boxes = torch.zeros_like(rel_codes)
         # x1
-        pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w
+        pred_boxes[:, 0::6] = pred_ctr_x - 0.5 * pred_w
         # y1
-        pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h
+        pred_boxes[:, 1::6] = pred_ctr_y - 0.5 * pred_h
         # x2 (note: "- 1" is correct; don't be fooled by the asymmetry)
-        pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w - 1
+        pred_boxes[:, 2::6] = pred_ctr_x + 0.5 * pred_w - 1
         # y2 (note: "- 1" is correct; don't be fooled by the asymmetry)
-        pred_boxes[:, 3::4] = pred_ctr_y + 0.5 * pred_h - 1
+        pred_boxes[:, 3::6] = pred_ctr_y + 0.5 * pred_h - 1
+        # vw
+        pred_boxes[:, 4::6] = pred_vw
+        # vh
+        pred_boxes[:, 5::6] = pred_vh
 
         return pred_boxes
