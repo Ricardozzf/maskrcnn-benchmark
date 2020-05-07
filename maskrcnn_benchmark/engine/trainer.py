@@ -150,10 +150,8 @@ def do_train(
             )
             if iteration / 100 != 0:
                 
-                writer.add_scalar('loss_rpn_box_reg/iter', meters.meters['loss_rpn_box_reg'].avg, iteration)
-                writer.add_scalar('loss_objectness/iter', meters.meters['loss_objectness'].avg, iteration)
-                writer.add_scalar('loss_box_reg/iter', meters.meters['loss_box_reg'].avg, iteration)
-                writer.add_scalar('loss_classifier/iter', meters.meters['loss_classifier'].avg, iteration)
+                writer.add_scalar('loss_retina_cls:/iter', meters.meters['loss_retina_cls'].avg, iteration)
+                writer.add_scalar('loss_retina_reg:/iter', meters.meters['loss_retina_reg'].avg, iteration)
                 writer.add_scalar('loss/iter', meters.meters['loss'].avg, iteration)
                 
 
