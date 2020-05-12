@@ -149,11 +149,11 @@ def do_train(
                 )
             )
             if iteration / 100 != 0:
-                
+                ''' 
                 writer.add_scalar('loss_retina_cls:/iter', meters.meters['loss_retina_cls'].avg, iteration)
                 writer.add_scalar('loss_retina_reg:/iter', meters.meters['loss_retina_reg'].avg, iteration)
                 writer.add_scalar('loss/iter', meters.meters['loss'].avg, iteration)
-                
+                '''
 
         if iteration % checkpoint_period == 0:
             checkpointer.save("model_{:07d}".format(iteration), **arguments)
