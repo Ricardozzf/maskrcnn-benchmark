@@ -31,6 +31,8 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, timer=None):
                 if not device.type == 'cpu':
                     torch.cuda.synchronize()
                 timer.toc()
+            for o in output:
+                o.remove_vwvh() 
             output = [o.to(cpu_device) for o in output]
         results_dict.update(
             {img_id: result for img_id, result in zip(image_ids, output)}

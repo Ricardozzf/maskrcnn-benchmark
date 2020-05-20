@@ -141,7 +141,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
                 inds = (labels == j).nonzero().view(-1)
 
                 scores_j = scores[inds]
-                boxes_j = boxes[inds, :].view(-1, 4)
+                boxes_j = boxes[inds, :].view(-1, 6)
                 boxlist_for_class = BoxList(boxes_j, boxlist.size, mode="xyxy")
                 boxlist_for_class.add_field("scores", scores_j)
                 boxlist_for_class = boxlist_nms(

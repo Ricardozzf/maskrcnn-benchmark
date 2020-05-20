@@ -38,6 +38,7 @@ class BoxList(object):
         self.size = image_size  # (image_width, image_height)
         self.mode = mode
         self.extra_fields = {}
+        self.vwvh = None
 
     def add_field(self, field, field_data):
         self.extra_fields[field] = field_data
@@ -248,6 +249,9 @@ class BoxList(object):
 
     def __getitem__(self, item):
         bbox = BoxList(self.bbox[item], self.size, self.mode)
+        if self.vwvh is not None:
+            bbox.vwvh = self.vwvh[item]
+            bbox.vis = True
         for k, v in self.extra_fields.items():
             bbox.add_field(k, v[item])
         return bbox
@@ -297,6 +301,17 @@ class BoxList(object):
         s += "image_height={}, ".format(self.size[1])
         s += "mode={})".format(self.mode)
         return s
+
+    def remove_vwvh(self):
+        if  self.vwvh is None and self.vis:
+            self.vwvh = self.bbox[:, 4:]
+            self.bbox = self.bbox[:,:4]
+
+    
+    def cat_vwvh(self):
+        if self.vwvh is not None and self.vis:
+            self.bbox = torch.cat([self.bbox, self.vwvh], 1)
+            self.vwvh = None
 
 
 if __name__ == "__main__":

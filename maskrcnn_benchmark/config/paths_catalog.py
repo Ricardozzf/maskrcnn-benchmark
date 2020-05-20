@@ -197,7 +197,7 @@ class DatasetCatalog(object):
         },
         "Crowdhuman_coco_val": {
             "img_dir": "CrowdCoco/val",
-            "ann_file": "CrowdCoco/annotations/val.json"
+            "ann_file": "CrowdCoco/annotations/val4.json"
         },
     }
 

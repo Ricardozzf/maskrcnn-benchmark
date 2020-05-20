@@ -10,6 +10,8 @@ from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark import layers as L
 from maskrcnn_benchmark.utils import cv2_util
 
+from maskrcnn_benchmark.structures.boxlist_ops import boxlist_nms, boxlist_iou
+
 class Resize(object):
     def __init__(self, min_size, max_size):
         self.min_size = min_size
@@ -47,85 +49,6 @@ class COCODemo(object):
     CATEGORIES = [
         "__background",
         "person",
-        "bicycle",
-        "car",
-        "motorcycle",
-        "airplane",
-        "bus",
-        "train",
-        "truck",
-        "boat",
-        "traffic light",
-        "fire hydrant",
-        "stop sign",
-        "parking meter",
-        "bench",
-        "bird",
-        "cat",
-        "dog",
-        "horse",
-        "sheep",
-        "cow",
-        "elephant",
-        "bear",
-        "zebra",
-        "giraffe",
-        "backpack",
-        "umbrella",
-        "handbag",
-        "tie",
-        "suitcase",
-        "frisbee",
-        "skis",
-        "snowboard",
-        "sports ball",
-        "kite",
-        "baseball bat",
-        "baseball glove",
-        "skateboard",
-        "surfboard",
-        "tennis racket",
-        "bottle",
-        "wine glass",
-        "cup",
-        "fork",
-        "knife",
-        "spoon",
-        "bowl",
-        "banana",
-        "apple",
-        "sandwich",
-        "orange",
-        "broccoli",
-        "carrot",
-        "hot dog",
-        "pizza",
-        "donut",
-        "cake",
-        "chair",
-        "couch",
-        "potted plant",
-        "bed",
-        "dining table",
-        "toilet",
-        "tv",
-        "laptop",
-        "mouse",
-        "remote",
-        "keyboard",
-        "cell phone",
-        "microwave",
-        "oven",
-        "toaster",
-        "sink",
-        "refrigerator",
-        "book",
-        "clock",
-        "vase",
-        "scissors",
-        "teddy bear",
-        "hair drier",
-        "toothbrush",
     ]
 
     def __init__(
@@ -196,9 +119,9 @@ class COCODemo(object):
         )
         return transform
 
-    def run_on_opencv_image(self, image):
+    def run_on_opencv_image(self, image, targets=None, err=None, gt_err=None):
         """
-        Arguments:
+        Arguments:cat_vwvh
             image (np.ndarray): an image as returned by OpenCV
 
         Returns:
@@ -207,8 +130,35 @@ class COCODemo(object):
                 the BoxList via `prediction.fields()`
         """
         predictions = self.compute_prediction(image)
+        
         top_predictions = self.select_top_predictions(predictions)
 
+        top_predictions = boxlist_nms(top_predictions,0.5)
+        if targets is not None:
+            #import pdb; pdb.set_trace()
+            iou_m = boxlist_iou(top_predictions, targets)
+            _, index = iou_m.max(1)
+            predict_match = targets[index]
+            #import pdb; pdb.set_trace()
+            
+            for i in range(predict_match.bbox.shape[0]):
+                '''
+                print("pre_w:{}   pre_h:{}   gt_w:{}   gt_v:{}".format(top_predictions.bbox[i,4], \
+                    top_predictions.bbox[i,5], predict_match.bbox[i,4], predict_match.bbox[i,5]))
+                '''
+                err_w = ((top_predictions.bbox[i,4]-predict_match.bbox[i,4])/predict_match.bbox[i,4]).numpy()
+                err_h = ((top_predictions.bbox[i,5]-predict_match.bbox[i,5])/predict_match.bbox[i,5]).numpy()
+                gt_err_w = ((top_predictions.bbox[i,2]-top_predictions.bbox[i,0]-predict_match.bbox[i,2])/predict_match.bbox[i,2]).numpy()
+                gt_err_h = ((top_predictions.bbox[i,3]-top_predictions.bbox[i,1]-predict_match.bbox[i,3])/predict_match.bbox[i,3]).numpy()
+                iou_v = (predict_match.bbox[i,4] * predict_match.bbox[i,5] / predict_match.area()[i]).numpy()
+                '''
+                if iou_v > 1.5:
+                    raise ValueError("iou_v must smaller than 1!")
+                '''
+                err.append([err_w, err_h,gt_err_w, gt_err_h,iou_v])
+                
+                
+                
         result = image.copy()
         if self.show_mask_heatmaps:
             return self.create_mask_montage(result, top_predictions)
@@ -303,9 +253,9 @@ class COCODemo(object):
 
         for box, color in zip(boxes, colors):
             box = box.to(torch.int64)
-            top_left, bottom_right = box[:2].tolist(), box[2:].tolist()
+            top_left, bottom_right = box[:2].tolist(), box[2:4].tolist()
             image = cv2.rectangle(
-                image, tuple(top_left), tuple(bottom_right), tuple(color), 1
+                image, tuple(top_left), tuple(bottom_right), tuple(color), 3
             )
 
         return image
