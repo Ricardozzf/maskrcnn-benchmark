@@ -23,7 +23,7 @@ class BoxList(object):
             raise ValueError(
                 "bbox should have 2 dimensions, got {}".format(bbox.ndimension())
             )
-        if bbox.size(-1) != 4 and bbox.size(-1) != 6:
+        if bbox.size(-1) != 4 and bbox.size(-1) != 8:
             raise ValueError(
                 "last dimension of bbox should have a "
                 "size of 4, got {}".format(bbox.size(-1))
@@ -31,7 +31,7 @@ class BoxList(object):
         if mode not in ("xyxy", "xywh"):
             raise ValueError("mode should be 'xyxy' or 'xywh'")
         self.vis = False
-        if bbox.size(-1) == 6:
+        if bbox.size(-1) == 8:
             self.vis = True
 
         self.bbox = bbox
@@ -64,8 +64,8 @@ class BoxList(object):
         # we only have two modes, so don't need to check
         # self.mode
         if self.vis:
-            xmin, ymin, xmax, ymax, v_w, v_h = self._split_into_xyxywh()
-            tuple_add = (v_w, v_h)
+            xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h = self._split_into_xyxywh()
+            tuple_add = (v_x, v_y, v_w, v_h)
         else: 
             xmin, ymin, xmax, ymax = self._split_into_xyxy()
             tuple_add = ()
@@ -99,16 +99,18 @@ class BoxList(object):
     
     def _split_into_xyxywh(self):
         if self.mode == "xyxy":
-            xmin, ymin, xmax, ymax, v_w, v_h = self.bbox.split(1, dim=-1)
-            return xmin, ymin, xmax, ymax, v_w, v_h
+            xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h = self.bbox.split(1, dim=-1)
+            return xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h
         elif self.mode == "xywh":
             TO_REMOVE = 1
-            xmin, ymin, w, h, v_w, v_h = self.bbox.split(1, dim=-1)
+            xmin, ymin, w, h, v_x, v_y, v_w, v_h = self.bbox.split(1, dim=-1)
             return (
                 xmin,
                 ymin,
                 xmin + (w - TO_REMOVE).clamp(min=0),
                 ymin + (h - TO_REMOVE).clamp(min=0),
+                v_x,
+                v_y,
                 v_w,
                 v_h,
             )
@@ -138,10 +140,12 @@ class BoxList(object):
 
         ratio_width, ratio_height = ratios
         if self.vis:
-            xmin, ymin, xmax, ymax, v_w, v_h = self._split_into_xyxywh()
+            xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h = self._split_into_xyxywh()
+            v_x *= ratio_width
+            v_y *= ratio_height
             v_w *= ratio_width
             v_h *= ratio_height
-            tuple_add = (v_w, v_h)
+            tuple_add = (v_x, v_y, v_w, v_h)
         else:
             xmin, ymin, xmax, ymax = self._split_into_xyxy()
             tuple_add = ()
@@ -176,8 +180,8 @@ class BoxList(object):
 
         image_width, image_height = self.size
         if self.vis:
-            xmin, ymin, xmax, ymax, v_w, v_h = self._split_into_xyxywh()
-            tuple_add = (v_w, v_h)
+            xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h = self._split_into_xyxywh()
+            tuple_add = (v_x, v_y, v_w, v_h)
         else:
             xmin, ymin, xmax, ymax = self._split_into_xyxy()
             tuple_add = ()
@@ -211,8 +215,8 @@ class BoxList(object):
         coordinate.
         """
         if self.vis:
-            xmin, ymin, xmax, ymax, v_w, v_h = self._split_into_xyxywh()
-            tuple_add = (v_w, v_h)
+            xmin, ymin, xmax, ymax, v_x, v_y, v_w, v_h = self._split_into_xyxywh()
+            tuple_add = (v_x, v_y, v_w, v_h)
         else:
             xmin, ymin, xmax, ymax = self._split_into_xyxy()
             tuple_add = ()

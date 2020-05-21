@@ -47,7 +47,7 @@ def remove_small_boxes(boxlist, min_size):
     xywh_boxes = boxlist.convert("xywh").bbox
     vis = boxlist.vis
     if vis:
-        _, _, ws, hs, _, _ = xywh_boxes.unbind(dim=1)
+        _, _, ws, hs, _, _, _, _ = xywh_boxes.unbind(dim=1)
     else:
         _, _, ws, hs = xywh_boxes.unbind(dim=1)
     keep = (

@@ -66,14 +66,14 @@ class RetinaNetPostProcessor(RPNPostProcessor):
         """
         device = box_cls.device
         N, _, H, W = box_cls.shape
-        A = box_regression.size(1) // 6
+        A = box_regression.size(1) // 8
         C = box_cls.size(1) // A
 
         # put in the same format as anchors
         box_cls = permute_and_flatten(box_cls, N, A, C, H, W)
         box_cls = box_cls.sigmoid()
 
-        box_regression = permute_and_flatten(box_regression, N, A, 6, H, W)
+        box_regression = permute_and_flatten(box_regression, N, A, 8, H, W)
 
         num_anchors = A * H * W
 
@@ -110,7 +110,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
             per_class += 1
 
             detections = self.box_coder.decode(
-                per_box_regression[per_box_loc, :].view(-1, 6),
+                per_box_regression[per_box_loc, :].view(-1, 8),
                 per_anchors.bbox[per_box_loc, :].view(-1, 4)
             )
 
@@ -141,7 +141,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
                 inds = (labels == j).nonzero().view(-1)
 
                 scores_j = scores[inds]
-                boxes_j = boxes[inds, :].view(-1, 6)
+                boxes_j = boxes[inds, :].view(-1, 8)
                 boxlist_for_class = BoxList(boxes_j, boxlist.size, mode="xyxy")
                 boxlist_for_class.add_field("scores", scores_j)
                 boxlist_for_class = boxlist_nms(

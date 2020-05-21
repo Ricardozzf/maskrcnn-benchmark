@@ -58,7 +58,7 @@ class RetinaNetHead(torch.nn.Module):
             padding=1
         )
         self.bbox_pred = nn.Conv2d(
-            in_channels,  num_anchors * 6, kernel_size=3, stride=1,
+            in_channels,  num_anchors * 8, kernel_size=3, stride=1,
             padding=1
         )
 
