@@ -54,12 +54,12 @@ def main():
     parser.add_argument(
         "--img-dir",
         type=str,
-        default="/home/zouzhaofan/data/CrowdHuman/val",
+        default="/home/zouzhaofan/Dataset/PublicData/face++/val",
     )
     parser.add_argument(
         "--valjson",
         type=str,
-        default='/home/zouzhaofan/data/CrowdHuman/val.json',
+        default='/home/zouzhaofan/Dataset/PublicData/face++/val_fwh.json',
     )
 
     args = parser.parse_args()
@@ -77,7 +77,7 @@ def main():
         show_mask_heatmaps=args.show_mask_heatmaps,
         masks_per_dim=args.masks_per_dim,
         min_image_size=args.min_image_size,
-        weight_loading="/home/zouzhaofan/Github/maskrcnn-benchmark/retina-person/model_final.pth"
+        weight_loading="/home/zouzhaofan/Work/Github/maskrcnn-benchmark/retina-person-fwh/model_final.pth"
     )
 
     #cam = cv2.VideoCapture(0)

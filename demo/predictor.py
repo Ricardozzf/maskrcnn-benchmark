@@ -134,10 +134,13 @@ class COCODemo(object):
         top_predictions = self.select_top_predictions(predictions)
 
         top_predictions = boxlist_nms(top_predictions,0.5)
-        if targets is not None:
-            #import pdb; pdb.set_trace()
+        if targets is not None and top_predictions.bbox.shape[0]!=0:
+            
             iou_m = boxlist_iou(top_predictions, targets)
-            _, index = iou_m.max(1)
+            try:
+                _, index = iou_m.max(1)
+            except RuntimeError:
+                import pdb; pdb.set_trace()
             predict_match = targets[index]
             #import pdb; pdb.set_trace()
             
@@ -150,7 +153,7 @@ class COCODemo(object):
                 err_h = ((top_predictions.bbox[i,5]-predict_match.bbox[i,5])/predict_match.bbox[i,5]).numpy()
                 gt_err_w = ((top_predictions.bbox[i,2]-top_predictions.bbox[i,0]-predict_match.bbox[i,2])/predict_match.bbox[i,2]).numpy()
                 gt_err_h = ((top_predictions.bbox[i,3]-top_predictions.bbox[i,1]-predict_match.bbox[i,3])/predict_match.bbox[i,3]).numpy()
-                iou_v = (predict_match.bbox[i,4] * predict_match.bbox[i,5] / predict_match.area()[i]).numpy()
+                iou_v = (predict_match.area()[i] / (predict_match.bbox[i,4] * predict_match.bbox[i,5])).numpy()
                 '''
                 if iou_v > 1.5:
                     raise ValueError("iou_v must smaller than 1!")
