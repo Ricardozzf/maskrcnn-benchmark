@@ -142,30 +142,30 @@ class COCODemo(object):
             except RuntimeError:
                 import pdb; pdb.set_trace()
             predict_match = targets[index]
-            #import pdb; pdb.set_trace()
-            
+            predict_match.cat_vwvh()
+            '''
             for i in range(predict_match.bbox.shape[0]):
-                '''
+                
                 print("pre_w:{}   pre_h:{}   gt_w:{}   gt_v:{}".format(top_predictions.bbox[i,4], \
                     top_predictions.bbox[i,5], predict_match.bbox[i,4], predict_match.bbox[i,5]))
-                '''
+                
                 err_w = ((top_predictions.bbox[i,4]-predict_match.bbox[i,4])/predict_match.bbox[i,4]).numpy()
                 err_h = ((top_predictions.bbox[i,5]-predict_match.bbox[i,5])/predict_match.bbox[i,5]).numpy()
                 gt_err_w = ((top_predictions.bbox[i,2]-top_predictions.bbox[i,0]-predict_match.bbox[i,2])/predict_match.bbox[i,2]).numpy()
                 gt_err_h = ((top_predictions.bbox[i,3]-top_predictions.bbox[i,1]-predict_match.bbox[i,3])/predict_match.bbox[i,3]).numpy()
                 iou_v = (predict_match.area()[i] / (predict_match.bbox[i,4] * predict_match.bbox[i,5])).numpy()
-                '''
+                
                 if iou_v > 1.5:
                     raise ValueError("iou_v must smaller than 1!")
-                '''
-                err.append([err_w, err_h,gt_err_w, gt_err_h,iou_v])
                 
+                err.append([err_w, err_h,gt_err_w, gt_err_h,iou_v])
+            ''' 
                 
                 
         result = image.copy()
         if self.show_mask_heatmaps:
             return self.create_mask_montage(result, top_predictions)
-        result = self.overlay_boxes(result, top_predictions)
+        result = self.overlay_boxes(result, top_predictions, predict_match)
         if self.cfg.MODEL.MASK_ON:
             result = self.overlay_mask(result, top_predictions)
         if self.cfg.MODEL.KEYPOINT_ON:
@@ -240,7 +240,7 @@ class COCODemo(object):
         colors = (colors % 255).numpy().astype("uint8")
         return colors
 
-    def overlay_boxes(self, image, predictions):
+    def overlay_boxes(self, image, predictions, targets):
         """
         Adds the predicted boxes on top of the image
 
@@ -251,15 +251,45 @@ class COCODemo(object):
         """
         labels = predictions.get_field("labels")
         boxes = predictions.bbox
-
+        t_boxes = targets.bbox
+        
         colors = self.compute_colors_for_labels(labels).tolist()
-
-        for box, color in zip(boxes, colors):
+        color_f = (0,0,255)
+        
+        for box, color, t_box in zip(boxes, colors, t_boxes):
             box = box.to(torch.int64)
+            
             top_left, bottom_right = box[:2].tolist(), box[2:4].tolist()
-            image = cv2.rectangle(
-                image, tuple(top_left), tuple(bottom_right), tuple(color), 3
+
+            pre_fw, pre_fh = box[4].tolist(), box[5].tolist()
+            t_x1, t_y1 = t_box[4].tolist(), t_box[5].tolist()
+            t_w, t_h = t_box[6].tolist(), t_box[7].tolist()
+            t_cx = t_x1 + 0.5 * t_w
+            t_cy = t_y1 + 0.5 * t_h
+
+            t_x1 = int(t_x1)
+            t_y1 = int(t_y1)
+            t_x2 = int(t_x1 + t_w)
+            t_y2 = int(t_y1 + t_h)
+            pre_x1 = int(t_cx - 0.5 * pre_fw)
+            pre_y1 = int(t_cy - 0.5 * pre_fh)
+            pre_x2 = int(t_cx + 0.5 * pre_fw)
+            pre_y2 = int(t_cy + 0.5 * pre_fh)
+            
+            t_image = image.copy()
+            image_t = cv2.rectangle(
+                t_image, (t_x1, t_y1), (t_x2, t_y2), tuple(color), 3
             )
+            
+            image_t = cv2.rectangle(
+                image_t, (pre_x1,pre_y1),(pre_x2,pre_y2), color_f, 3
+            )
+            cv2.imshow("COCO detections", image_t)
+            key = cv2.waitKey(0)
+            if key == 27:
+                exit(0)  # esc to quit
+            elif key == ord('s'):
+                break
 
         return image
 
