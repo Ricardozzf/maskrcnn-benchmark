@@ -191,11 +191,16 @@ class BoxList(object):
             transposed_xmax = image_width - xmin - TO_REMOVE
             transposed_ymin = ymin
             transposed_ymax = ymax
+            if self.vis:
+                transposed_vx = image_width - v_x + TO_REMOVE
+                transposed_vy = image_height - v_y + TO_REMOVE
+                tuple_add = (transposed_vx, transposed_vy, v_w, v_h)
         elif method == FLIP_TOP_BOTTOM:
             transposed_xmin = xmin
             transposed_xmax = xmax
             transposed_ymin = image_height - ymax
             transposed_ymax = image_height - ymin
+            raise ValueError("Dont support vertical flip!")
 
         transposed_boxes = torch.cat(
             (transposed_xmin, transposed_ymin, transposed_xmax, transposed_ymax)+tuple_add, dim=-1
